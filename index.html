@@ -1,27 +1,34 @@
+---
+---
+{% assign s = site.data.site %}
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Red River Sites | $1,000 Websites for Clarksville, TN Businesses</title>
-<meta name="description" content="Red River Sites builds fast, mobile-friendly websites for Clarksville, Tennessee small businesses for a flat $1,000. Custom design, contact form, Google Maps, hours, basic SEO and hosting setup.">
-<meta property="og:title" content="Red River Sites | $1,000 Websites for Clarksville Businesses">
-<meta property="og:description" content="A real, custom website for your Clarksville business. One flat price: $1,000.">
+<title>{{ s.seo.title | escape }}</title>
+<meta name="description" content="{{ s.seo.description | escape }}">
+<meta property="og:title" content="{{ s.seo.social_title | escape }}">
+<meta property="og:description" content="{{ s.seo.social_description | escape }}">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#7a1f1f">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="{{ '/assets/favicon.svg' | relative_url }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ '/styles.css' | relative_url }}">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"ProfessionalService","name":"Red River Sites","areaServed":"Clarksville, TN","founder":"Jalen Patterson","description":"Flat-rate $1,000 website builds for local businesses in Clarksville, Tennessee.","priceRange":"$1,000"}
+{"@context":"https://schema.org","@type":"ProfessionalService","name":{{ s.business_name | jsonify }},"areaServed":{{ s.service_area | jsonify }},"founder":{{ s.owner_name | jsonify }},"description":{{ s.seo.description | jsonify }},"priceRange":{{ s.price | jsonify }}}
 </script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav" id="top">
   <div class="wrap nav-inner">
-    <a class="brand" href="#top" aria-label="Red River Sites home">
+    <a class="brand" href="#top" aria-label="{{ s.business_name | escape }} home">
+      {% if s.photos.logo and s.photos.logo != '' %}
+      <img src="{{ s.photos.logo | relative_url }}" alt="" width="34" height="34">
+      {% else %}
       <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#7a1f1f"/><path d="M8 40c10-10 18 6 28-4s18-6 20-4" stroke="#f3c9a8" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M8 50c10-10 18 6 28-4s18-6 20-4" stroke="#fff" stroke-opacity=".55" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M18 30V16h28v14" stroke="#fff" stroke-width="4" fill="none" stroke-linejoin="round"/></svg>
-      <span>Red River <b>Sites</b></span>
+      {% endif %}
+      <span>{{ s.business_name | escape | replace: 'Sites', '<b>Sites</b>' }}</span>
     </a>
     <button class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="Open menu"><span></span><span></span><span></span></button>
     <nav id="menu" class="menu">
@@ -38,62 +45,65 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow">Clarksville, Tennessee web design</p>
-      <h1>A real website for your Clarksville business. <span class="hl">One flat $1,000.</span></h1>
-      <p class="lead">Custom design, built for phones, with your hours, map and a contact form, launched and hosted. No monthly agency retainer, no surprise invoices.</p>
+      <p class="eyebrow">{{ s.hero.eyebrow | escape }}</p>
+      <h1>{{ s.hero.headline | escape }} <span class="hl">{{ s.hero.highlight | escape }}</span></h1>
+      <p class="lead">{{ s.hero.intro | escape }}</p>
       <div class="cta-row">
-        <a class="btn" href="#contact">Get my website</a>
-        <a class="btn btn-ghost" href="#included">See what's included</a>
+        <a class="btn" href="#contact">{{ s.hero.button_main | escape }}</a>
+        <a class="btn btn-ghost" href="#included">{{ s.hero.button_secondary | escape }}</a>
       </div>
       <ul class="trust">
-        <li>Flat price, quoted up front</li>
-        <li>Local to Clarksville</li>
-        <li>You own your site and domain</li>
+        {% for item in s.hero.trust_points %}
+        <li>{{ item | escape }}</li>
+        {% endfor %}
       </ul>
     </div>
     <div class="hero-art" aria-hidden="true">
       <div class="device laptop">
-        <div class="bar"><i></i><i></i><i></i><span>yourbusiness.com</span></div>
+        <div class="bar"><i></i><i></i><i></i><span>{{ s.hero.example_web_address | escape }}</span></div>
+        {% if s.photos.hero and s.photos.hero != '' %}
+        <div class="screen screen-photo">
+          <img src="{{ s.photos.hero | relative_url }}" alt="">
+        </div>
+        {% else %}
         <div class="screen">
           <div class="m-hero"><div class="m-line w60"></div><div class="m-line w40"></div><div class="m-btn"></div></div>
           <div class="m-cards"><div></div><div></div><div></div></div>
           <div class="m-map"><span class="pin"></span></div>
         </div>
+        {% endif %}
       </div>
       <div class="device phone">
         <div class="notch"></div>
         <div class="m-hero sm"><div class="m-line w70"></div><div class="m-btn"></div></div>
         <div class="m-row"></div><div class="m-row"></div><div class="m-row short"></div>
-        <div class="m-call">Call now</div>
+        <div class="m-call">{{ s.hero.phone_button_label | escape }}</div>
       </div>
-      <div class="price-tag"><small>Flat rate</small>$1,000</div>
+      <div class="price-tag"><small>{{ s.price_label | escape }}</small>{{ s.price | escape }}</div>
     </div>
   </div>
 </section>
 
 <section id="included" class="section">
   <div class="wrap">
-    <p class="eyebrow">What's included</p>
-    <h2>Everything a local business site needs, in one $1,000 build</h2>
+    <p class="eyebrow">{{ s.included.eyebrow | escape }}</p>
+    <h2>{{ s.included.heading | escape }}</h2>
     <div class="grid-3 features">
-      <article class="card"><div class="ic">&#9998;</div><h3>Custom design</h3><p>Designed around your business, colors and logo. Not a recycled template with your name pasted in.</p></article>
-      <article class="card"><div class="ic">&#128241;</div><h3>Mobile-friendly</h3><p>Most of your customers find you on their phone. Your site looks right and loads fast on every screen, with tap-to-call.</p></article>
-      <article class="card"><div class="ic">&#9993;</div><h3>Contact form</h3><p>Customers can reach you from the site, and messages land straight in your inbox.</p></article>
-      <article class="card"><div class="ic">&#128205;</div><h3>Google Maps &amp; hours</h3><p>Your location, service area and business hours, easy to find so people actually show up.</p></article>
-      <article class="card"><div class="ic">&#128269;</div><h3>Basic SEO</h3><p>Page titles, descriptions, local business markup and Google Business Profile tips so you show up for &ldquo;near me&rdquo; searches.</p></article>
-      <article class="card"><div class="ic">&#9889;</div><h3>Fast hosting setup</h3><p>Secure HTTPS hosting and your domain connected for you. Low or no ongoing hosting cost, in your name.</p></article>
+      {% for item in s.included.items %}
+      <article class="card"><div class="ic">{{ item.icon }}</div><h3>{{ item.title | escape }}</h3><p>{{ item.text | escape }}</p></article>
+      {% endfor %}
     </div>
   </div>
 </section>
 
 <section id="how" class="section alt">
   <div class="wrap">
-    <p class="eyebrow">How it works</p>
-    <h2>Three steps from &ldquo;we need a website&rdquo; to live</h2>
+    <p class="eyebrow">{{ s.how.eyebrow | escape }}</p>
+    <h2>{{ s.how.heading | escape }}</h2>
     <ol class="steps">
-      <li><span class="num">1</span><h3>Quick call</h3><p>A 15-minute conversation about your business, your customers and what you want the site to do. You get a flat $1,000 quote. No surprises.</p></li>
-      <li><span class="num">2</span><h3>Design &amp; build</h3><p>I design and build your site, then send you a preview link. You request changes until it feels right.</p></li>
-      <li><span class="num">3</span><h3>Launch</h3><p>Your domain, hosting, map and contact form are connected and tested. You're live, and you own all of it.</p></li>
+      {% for step in s.how.steps %}
+      <li><span class="num">{{ forloop.index }}</span><h3>{{ step.title | escape }}</h3><p>{{ step.text | escape }}</p></li>
+      {% endfor %}
     </ol>
   </div>
 </section>
@@ -101,82 +111,98 @@
 <section id="why" class="section">
   <div class="wrap why-grid">
     <div>
-      <p class="eyebrow">Why it matters</p>
-      <h2>Why Clarksville businesses need a real website</h2>
-      <p>Clarksville is one of the fastest-growing cities in Tennessee, and a lot of that growth is new families, including military families rotating through Fort Campbell, who don't know the town yet. They don't ask a neighbor. They search on their phone.</p>
-      <p>If all they find is an old Facebook page or a listing with no hours, they call the next business on the list. A clear, fast website tells them who you are, what you do, where you are and how to reach you, in about five seconds.</p>
+      <p class="eyebrow">{{ s.why.eyebrow | escape }}</p>
+      <h2>{{ s.why.heading | escape }}</h2>
+      {% for para in s.why.paragraphs %}
+      <p>{{ para | escape }}</p>
+      {% endfor %}
     </div>
     <ul class="why-list">
-      <li><b>Get found</b> on Google and Maps for &ldquo;near me&rdquo; searches.</li>
-      <li><b>Look established</b> to newcomers who have never heard of you.</li>
-      <li><b>Answer the basics</b> (hours, prices, location) without the phone ringing.</li>
-      <li><b>Own your presence</b> instead of relying only on social media.</li>
+      {% for point in s.why.points %}
+      <li><b>{{ point.lead | escape }}</b> {{ point.text | escape }}</li>
+      {% endfor %}
     </ul>
   </div>
 </section>
 
 <section id="work" class="section alt">
   <div class="wrap">
-    <p class="eyebrow">Concept work</p>
-    <h2>Sample concepts</h2>
-    <p class="note">These are <strong>design concepts for example businesses</strong>, made to show the style and range of a $1,000 build. They are not real clients.</p>
+    <p class="eyebrow">{{ s.concepts.eyebrow | escape }}</p>
+    <h2>{{ s.concepts.heading | escape }}</h2>
+    <p class="note">{{ s.concepts.note | markdownify | remove: '<p>' | remove: '</p>' }}</p>
     <div class="grid-3 concepts">
+      {% for item in s.concepts.items %}
       <figure class="concept">
+        {% if item.photo and item.photo != '' %}
+        <div class="concept-photo">
+          <img src="{{ item.photo | relative_url }}" alt="{{ item.title | escape }}">
+        </div>
+        {% else %}
+          {% case forloop.index %}
+          {% when 1 %}
         <div class="mock mock-a" aria-hidden="true">
           <div class="mk-nav"><b>Cumberland Lawn Co.</b><i></i></div>
           <div class="mk-hero"><h4>Clean cuts. Every week.</h4><p>Mowing, mulch &amp; cleanups across Clarksville</p><span>Free estimate</span></div>
           <div class="mk-tiles"><div>Mowing</div><div>Mulch</div><div>Leaf cleanup</div></div>
         </div>
-        <figcaption><span class="tag">Concept</span><h3>Lawn care company</h3><p>Big estimate button, service tiles and service-area map for a fictional landscaping crew.</p></figcaption>
-      </figure>
-      <figure class="concept">
+          {% when 2 %}
         <div class="mock mock-b" aria-hidden="true">
           <div class="mk-nav"><b>Strawberry Alley Diner</b><i></i></div>
           <div class="mk-hero"><h4>Breakfast all day</h4><p>Open 6am to 2pm, downtown</p><span>View menu</span></div>
           <div class="mk-menu"><div><em>Biscuits &amp; gravy</em><em>$8</em></div><div><em>Hot chicken plate</em><em>$12</em></div><div><em>Pancake stack</em><em>$9</em></div></div>
         </div>
-        <figcaption><span class="tag">Concept</span><h3>Neighborhood diner</h3><p>Menu-first layout with hours up top and one-tap directions for a fictional downtown restaurant.</p></figcaption>
-      </figure>
-      <figure class="concept">
+          {% when 3 %}
         <div class="mock mock-c" aria-hidden="true">
           <div class="mk-nav"><b>Queen City Auto Care</b><i></i></div>
           <div class="mk-hero"><h4>Honest repairs, done right</h4><p>Brakes &middot; Oil &middot; Diagnostics</p><span>Book service</span></div>
           <div class="mk-stats"><div><b>Mon&ndash;Sat</b>7a&ndash;6p</div><div><b>Call</b>tap to dial</div></div>
         </div>
-        <figcaption><span class="tag">Concept</span><h3>Auto repair shop</h3><p>Booking-focused design with services, hours and tap-to-call for a fictional mechanic.</p></figcaption>
+          {% else %}
+        <div class="mock mock-a" aria-hidden="true">
+          <div class="mk-nav"><b>{{ item.title | escape }}</b><i></i></div>
+          <div class="mk-hero"><h4>{{ item.title | escape }}</h4><p>{{ item.caption | escape }}</p></div>
+        </div>
+          {% endcase %}
+        {% endif %}
+        <figcaption><span class="tag">Concept</span><h3>{{ item.title | escape }}</h3><p>{{ item.caption | escape }}</p></figcaption>
       </figure>
+      {% endfor %}
     </div>
   </div>
 </section>
 
 <section id="faq" class="section">
   <div class="wrap narrow">
-    <p class="eyebrow">FAQ</p>
-    <h2>Common questions</h2>
-    <details><summary>What does the $1,000 cover?</summary><p>Design and build of a custom site (typically up to 5 pages: home, services, about, gallery or menu, contact), mobile optimization, contact form, Google Map and hours, basic on-page SEO, and setting up hosting and your domain.</p></details>
-    <details><summary>Are there monthly fees?</summary><p>No monthly fee to me. You'll pay your domain registrar directly (usually about $10&ndash;$20 a year). Many small sites can be hosted free or very cheaply. Optional updates and maintenance can be arranged if you want them.</p></details>
-    <details><summary>How long does it take?</summary><p>Most sites are ready to launch in one to two weeks, depending on how quickly I get your photos, logo and text.</p></details>
-    <details><summary>Do I own the website?</summary><p>Yes. The domain is registered in your name and the site files are yours.</p></details>
-    <details><summary>What if I already have a website?</summary><p>If your current site is slow, outdated or hard to use on a phone, I can rebuild it for the same flat price and move your domain over.</p></details>
-    <details><summary>How do I pay?</summary><p>Typically half to start and half at launch. Payment details are confirmed in your quote.</p></details>
+    <p class="eyebrow">{{ s.faq.eyebrow | escape }}</p>
+    <h2>{{ s.faq.heading | escape }}</h2>
+    {% for item in s.faq.items %}
+    <details><summary>{{ item.question | escape }}</summary><p>{{ item.answer | escape }}</p></details>
+    {% endfor %}
   </div>
 </section>
 
 <section id="contact" class="section contact">
   <div class="wrap contact-grid">
     <div>
-      <p class="eyebrow light">Contact</p>
-      <h2>Let's get your business online</h2>
-      <p>Tell me a little about your business and I'll follow up with a flat quote.</p>
+      <p class="eyebrow light">{{ s.contact_section.eyebrow | escape }}</p>
+      <h2>{{ s.contact_section.heading | escape }}</h2>
+      <p>{{ s.contact_section.intro | escape }}</p>
       <ul class="contact-list">
-        <li><span>Owner</span>Jalen Patterson</li>
-        <li><span>Email</span><span class="ph">[email]</span></li>
-        <li><span>Phone</span><span class="ph">[phone]</span></li>
-        <li><span>LinkedIn</span><span class="ph">[LinkedIn]</span></li>
-        <li><span>Area</span>Clarksville, TN and nearby</li>
+        <li><span>Owner</span>{{ s.owner_name | escape }}</li>
+        <li><span>Email</span>{% assign ev = s.email | strip %}{% if ev == '' or ev == '[email]' %}<span class="ph">[email]</span>{% else %}<a href="mailto:{{ ev | escape }}">{{ ev | escape }}</a>{% endif %}</li>
+        <li><span>Phone</span>{% assign pv = s.phone | strip %}{% if pv == '' or pv == '[phone]' %}<span class="ph">[phone]</span>{% else %}<a href="tel:{{ pv | replace: ' ', '' | replace: '-', '' | replace: '(', '' | replace: ')', '' | escape }}">{{ pv | escape }}</a>{% endif %}</li>
+        <li><span>LinkedIn</span>{% assign lv = s.linkedin | strip %}{% if lv == '' or lv == '[LinkedIn]' %}<span class="ph">[LinkedIn]</span>{% elsif lv contains 'http' %}<a href="{{ lv | escape }}">{{ lv | escape }}</a>{% else %}<a href="https://{{ lv | escape }}">{{ lv | escape }}</a>{% endif %}</li>
+        <li><span>Area</span>{{ s.service_area | escape }}</li>
+        {% assign hv = s.hours | strip %}{% if hv and hv != '' %}
+        <li><span>Hours</span>{{ hv | escape }}</li>
+        {% endif %}
       </ul>
     </div>
-    <form class="form" id="contact-form" novalidate>
+    <form class="form" id="contact-form" novalidate
+      data-thanks="{{ s.contact_section.form_thanks | escape }}"
+      data-error="{{ s.contact_section.form_error | escape }}"
+      data-email="{{ s.email | escape }}"
+      data-phone="{{ s.phone | escape }}">
       <label>Your name<input name="name" required autocomplete="name"></label>
       <label>Business name<input name="business" required></label>
       <label>Email or phone<input name="reach" required></label>
@@ -184,7 +210,7 @@
         <select name="current"><option>No website yet</option><option>Yes, but it needs work</option><option>Only a Facebook page</option></select>
       </label>
       <label>Anything else?<textarea name="msg" rows="3"></textarea></label>
-      <button class="btn" type="submit">Request my quote</button>
+      <button class="btn" type="submit">{{ s.contact_section.form_button | escape }}</button>
       <p class="form-status" role="status" aria-live="polite"></p>
     </form>
   </div>
@@ -193,10 +219,10 @@
 
 <footer class="footer">
   <div class="wrap foot-inner">
-    <p>&copy; <span id="yr">2026</span> Red River Sites &middot; Clarksville, Tennessee</p>
+    <p>&copy; <span id="yr">2026</span> {{ s.business_name | escape }} &middot; {{ s.footer_place | escape }}</p>
     <p><a href="#top">Back to top &uarr;</a></p>
   </div>
 </footer>
-<script src="script.js" defer></script>
+<script src="{{ '/script.js' | relative_url }}" defer></script>
 </body>
 </html>

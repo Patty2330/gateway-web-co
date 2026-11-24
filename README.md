@@ -1,3 +1,7 @@
 # Red River Sites marketing site
-Static site (plain HTML/CSS/JS, no build). Open index.html or deploy the folder as-is.
-Placeholders to fill: [email], [phone], [LinkedIn]. Contact form is front-end only until a form backend/inbox is connected.
+
+Jekyll site for GitHub Pages. Editable content lives in `_data/site.yml` and is edited in the [Pages CMS](https://app.pagescms.org/Patty2330/red-river-sites) form (no code needed).
+
+Live site: https://patty2330.github.io/red-river-sites/
+
+Placeholders to fill: email, phone, LinkedIn. The contact form is front-end only until a form backend/inbox is connected.

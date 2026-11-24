@@ -1,0 +1,326 @@
+# Pages CMS editor setup (https://app.pagescms.org)
+# One form for the website owner to edit text, contact details, prices, FAQ, and photos.
+
+media:
+  name: images
+  label: Photos
+  input: assets/uploads
+  output: /assets/uploads
+  extensions: [png, jpg, jpeg, webp, gif, svg]
+  rename: safe
+
+settings:
+  hide: true
+  commit:
+    templates:
+      create: "Add {filename} (via website editor)"
+      update: "Update website (via website editor)"
+      delete: "Remove {filename} (via website editor)"
+      rename: "Rename {oldFilename} to {newFilename} (via website editor)"
+
+content:
+  - name: website
+    label: Website content
+    type: file
+    path: _data/site.yml
+    format: yaml
+    fields:
+      - name: business_name
+        label: Business name
+        type: string
+        required: true
+        description: Shown in the header and at the bottom of the page.
+
+      - name: photos
+        label: Photos
+        type: object
+        description: Optional. Leave blank to keep the current look. After you upload and save, wait a minute or two, then refresh your website.
+        fields:
+          - name: logo
+            label: Logo
+            type: image
+            description: Replaces the red-square logo in the top left. A square or short image works best.
+            options:
+              media: images
+              extensions: [png, jpg, jpeg, webp, svg]
+          - name: hero
+            label: Main photo
+            type: image
+            description: Shows in the laptop picture at the top of the page. A wide photo works best.
+            options:
+              media: images
+              extensions: [png, jpg, jpeg, webp]
+
+      - name: owner_name
+        label: Owner name
+        type: string
+        required: true
+        description: Shown in the contact section.
+
+      - name: email
+        label: Email
+        type: string
+        description: Your business email. You can leave the placeholder until you have one.
+
+      - name: phone
+        label: Phone
+        type: string
+        description: Your business phone number. You can leave the placeholder until you have one.
+
+      - name: linkedin
+        label: LinkedIn
+        type: string
+        description: Paste your LinkedIn page address (the full link, starting with https). You can leave this for later.
+
+      - name: service_area
+        label: Service area
+        type: string
+        description: Where you work, for example "Clarksville, TN and nearby."
+
+      - name: hours
+        label: Hours
+        type: string
+        description: Optional. Example "Mon–Fri 9am–5pm." This only appears on the site if you fill it in.
+
+      - name: footer_place
+        label: City in the footer
+        type: string
+        description: The city name at the very bottom of the page.
+
+      - name: price
+        label: Website price
+        type: string
+        required: true
+        description: Shown on the price badge (for example $1,000). If you change this, also update any headlines or FAQ answers that mention the price.
+
+      - name: price_label
+        label: Price badge label
+        type: string
+        description: The small text above the price, for example "Flat rate."
+
+      - name: seo
+        label: What Google and the browser tab show
+        type: object
+        description: This does not change the page you see, just the browser tab and search results.
+        fields:
+          - name: title
+            label: Browser tab title
+            type: string
+          - name: description
+            label: Short description for Google
+            type: text
+          - name: social_title
+            label: Title when shared on social media
+            type: string
+          - name: social_description
+            label: Description when shared on social media
+            type: text
+
+      - name: hero
+        label: Top of the page
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small line above the headline
+            type: string
+          - name: headline
+            label: Headline
+            type: text
+            description: The first big sentence at the top of the page.
+          - name: highlight
+            label: Headline highlight
+            type: string
+            description: The second part of the headline, shown in red on its own line (for example "One flat $1,000.").
+          - name: intro
+            label: Introduction
+            type: text
+            description: The paragraph under the headline.
+          - name: button_main
+            label: Main button
+            type: string
+          - name: button_secondary
+            label: Second button
+            type: string
+          - name: trust_points
+            label: Trust points
+            type: string
+            list: true
+            description: The short checkmark lines under the buttons. Keep them brief.
+          - name: example_web_address
+            label: Example web address in the picture
+            type: string
+            description: The address shown in the sample laptop window, for example yourbusiness.com.
+          - name: phone_button_label
+            label: Button on the sample phone
+            type: string
+
+      - name: included
+        label: What's included
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: items
+            label: Included items
+            type: object
+            list:
+              min: 1
+              collapsible:
+                collapsed: true
+                summary: "{title}"
+            fields:
+              - name: icon
+                label: Icon
+                type: string
+                description: A single emoji, such as 📱 or ✉.
+              - name: title
+                label: Title
+                type: string
+              - name: text
+                label: Description
+                type: text
+
+      - name: how
+        label: How it works
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: steps
+            label: Steps
+            type: object
+            list:
+              min: 1
+              collapsible:
+                collapsed: true
+                summary: "{title}"
+            fields:
+              - name: title
+                label: Step title
+                type: string
+              - name: text
+                label: Step description
+                type: text
+
+      - name: why
+        label: Why it matters
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: paragraphs
+            label: Paragraphs
+            type: text
+            list: true
+          - name: points
+            label: Key points (dark box)
+            type: object
+            list:
+              collapsible:
+                collapsed: true
+                summary: "{lead}"
+            fields:
+              - name: lead
+                label: Bold lead-in
+                type: string
+              - name: text
+                label: Rest of the sentence
+                type: string
+
+      - name: concepts
+        label: Sample concepts
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: note
+            label: Note under the heading
+            type: text
+            description: You can make words bold by putting **asterisks** around them.
+          - name: items
+            label: Concepts
+            type: object
+            list:
+              collapsible:
+                collapsed: true
+                summary: "{title}"
+            fields:
+              - name: title
+                label: Title
+                type: string
+              - name: caption
+                label: Short description
+                type: text
+              - name: photo
+                label: Photo (optional)
+                type: image
+                description: If you add a photo, it replaces the sample design picture for this item.
+                options:
+                  media: images
+                  extensions: [png, jpg, jpeg, webp]
+
+      - name: faq
+        label: Frequently asked questions
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: items
+            label: Questions
+            type: object
+            list:
+              min: 1
+              collapsible:
+                collapsed: true
+                summary: "{question}"
+            fields:
+              - name: question
+                label: Question
+                type: string
+              - name: answer
+                label: Answer
+                type: text
+
+      - name: contact_section
+        label: Contact section
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: intro
+            label: Introduction
+            type: text
+          - name: form_button
+            label: Form button
+            type: string
+          - name: form_thanks
+            label: Thank-you message
+            type: text
+            description: Shown after someone sends the form. You can use [email] and [phone] and they will be filled in automatically.
+          - name: form_error
+            label: Message if the form is incomplete
+            type: string

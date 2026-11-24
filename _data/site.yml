@@ -1,0 +1,125 @@
+business_name: Red River Sites
+owner_name: Jalen Patterson
+email: "[email]"
+phone: "[phone]"
+linkedin: "[LinkedIn]"
+service_area: Clarksville, TN and nearby
+hours: ""
+footer_place: Clarksville, Tennessee
+
+photos:
+  logo: ""
+  hero: ""
+
+seo:
+  title: "Red River Sites | $1,000 Websites for Clarksville, TN Businesses"
+  description: "Red River Sites builds fast, mobile-friendly websites for Clarksville, Tennessee small businesses for a flat $1,000. Custom design, contact form, Google Maps, hours, basic SEO and hosting setup."
+  social_title: "Red River Sites | $1,000 Websites for Clarksville Businesses"
+  social_description: "A real, custom website for your Clarksville business. One flat price: $1,000."
+
+price: "$1,000"
+price_label: Flat rate
+
+hero:
+  eyebrow: Clarksville, Tennessee web design
+  headline: A real website for your Clarksville business.
+  highlight: One flat $1,000.
+  intro: Custom design, built for phones, with your hours, map and a contact form, launched and hosted. No monthly agency retainer, no surprise invoices.
+  button_main: Get my website
+  button_secondary: See what's included
+  trust_points:
+    - Flat price, quoted up front
+    - Local to Clarksville
+    - You own your site and domain
+  example_web_address: yourbusiness.com
+  phone_button_label: Call now
+
+included:
+  eyebrow: What's included
+  heading: Everything a local business site needs, in one $1,000 build
+  items:
+    - icon: "✎"
+      title: Custom design
+      text: Designed around your business, colors and logo. Not a recycled template with your name pasted in.
+    - icon: "📱"
+      title: Mobile-friendly
+      text: Most of your customers find you on their phone. Your site looks right and loads fast on every screen, with tap-to-call.
+    - icon: "✉"
+      title: Contact form
+      text: Customers can reach you from the site, and messages land straight in your inbox.
+    - icon: "📍"
+      title: Google Maps & hours
+      text: Your location, service area and business hours, easy to find so people actually show up.
+    - icon: "🔍"
+      title: Basic SEO
+      text: 'Page titles, descriptions, local business markup and Google Business Profile tips so you show up for “near me” searches.'
+    - icon: "⚡"
+      title: Fast hosting setup
+      text: Secure HTTPS hosting and your domain connected for you. Low or no ongoing hosting cost, in your name.
+
+how:
+  eyebrow: How it works
+  heading: 'Three steps from “we need a website” to live'
+  steps:
+    - title: Quick call
+      text: A 15-minute conversation about your business, your customers and what you want the site to do. You get a flat $1,000 quote. No surprises.
+    - title: Design & build
+      text: I design and build your site, then send you a preview link. You request changes until it feels right.
+    - title: Launch
+      text: Your domain, hosting, map and contact form are connected and tested. You're live, and you own all of it.
+
+why:
+  eyebrow: Why it matters
+  heading: Why Clarksville businesses need a real website
+  paragraphs:
+    - Clarksville is one of the fastest-growing cities in Tennessee, and a lot of that growth is new families, including military families rotating through Fort Campbell, who don't know the town yet. They don't ask a neighbor. They search on their phone.
+    - If all they find is an old Facebook page or a listing with no hours, they call the next business on the list. A clear, fast website tells them who you are, what you do, where you are and how to reach you, in about five seconds.
+  points:
+    - lead: Get found
+      text: 'on Google and Maps for “near me” searches.'
+    - lead: Look established
+      text: to newcomers who have never heard of you.
+    - lead: Answer the basics
+      text: (hours, prices, location) without the phone ringing.
+    - lead: Own your presence
+      text: instead of relying only on social media.
+
+concepts:
+  eyebrow: Concept work
+  heading: Sample concepts
+  note: "These are **design concepts for example businesses**, made to show the style and range of a $1,000 build. They are not real clients."
+  items:
+    - title: Lawn care company
+      caption: Big estimate button, service tiles and service-area map for a fictional landscaping crew.
+      photo: ""
+    - title: Neighborhood diner
+      caption: Menu-first layout with hours up top and one-tap directions for a fictional downtown restaurant.
+      photo: ""
+    - title: Auto repair shop
+      caption: Booking-focused design with services, hours and tap-to-call for a fictional mechanic.
+      photo: ""
+
+faq:
+  eyebrow: FAQ
+  heading: Common questions
+  items:
+    - question: What does the $1,000 cover?
+      answer: "Design and build of a custom site (typically up to 5 pages: home, services, about, gallery or menu, contact), mobile optimization, contact form, Google Map and hours, basic on-page SEO, and setting up hosting and your domain."
+    - question: Are there monthly fees?
+      answer: "No monthly fee to me. You'll pay your domain registrar directly (usually about $10–$20 a year). Many small sites can be hosted free or very cheaply. Optional updates and maintenance can be arranged if you want them."
+    - question: How long does it take?
+      answer: Most sites are ready to launch in one to two weeks, depending on how quickly I get your photos, logo and text.
+    - question: Do I own the website?
+      answer: Yes. The domain is registered in your name and the site files are yours.
+    - question: What if I already have a website?
+      answer: If your current site is slow, outdated or hard to use on a phone, I can rebuild it for the same flat price and move your domain over.
+    - question: How do I pay?
+      answer: Typically half to start and half at launch. Payment details are confirmed in your quote.
+
+contact_section:
+  eyebrow: Contact
+  heading: Let's get your business online
+  intro: Tell me a little about your business and I'll follow up with a flat quote.
+  form_button: Request my quote
+  form_thanks: "Thanks! Online requests go live once the business email is connected. For now, reach Jalen at [email] or [phone]."
+  form_error: Please fill in your name, business name and a way to reach you.

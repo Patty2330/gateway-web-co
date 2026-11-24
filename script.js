@@ -11,9 +11,10 @@
   f.addEventListener('submit',function(e){
     e.preventDefault();var ok=true;
     f.querySelectorAll('[required]').forEach(function(i){var bad=!i.value.trim();i.classList.toggle('invalid',bad);if(bad)ok=false;});
-    if(!ok){st.textContent='Please fill in your name, business name and a way to reach you.';return;}
-    // Placeholder: the form gets wired to a real inbox once the business [email] is set up.
-    st.textContent='Thanks! Online requests go live once the business email is connected. For now, reach Jalen at [email] or [phone].';
+    if(!ok){st.textContent=f.getAttribute('data-error')||'Please fill in your name, business name and a way to reach you.';return;}
+    var thanks=f.getAttribute('data-thanks')||'Thanks! Online requests go live once the business email is connected. For now, reach Jalen at [email] or [phone].';
+    thanks=thanks.replace('[email]',f.getAttribute('data-email')||'[email]').replace('[phone]',f.getAttribute('data-phone')||'[phone]');
+    st.textContent=thanks;
     f.reset();
   });
 })();
