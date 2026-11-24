@@ -28,10 +28,11 @@
       {% else %}
       <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#7a1f1f"/><path d="M8 40c10-10 18 6 28-4s18-6 20-4" stroke="#f3c9a8" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M8 50c10-10 18 6 28-4s18-6 20-4" stroke="#fff" stroke-opacity=".55" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M18 30V16h28v14" stroke="#fff" stroke-width="4" fill="none" stroke-linejoin="round"/></svg>
       {% endif %}
-      <span>{{ s.business_name | escape | replace: 'Sites', '<b>Sites</b>' }}</span>
+      <span>{{ s.business_name | escape | replace: 'Web Co', '<b>Web Co</b>' }}</span>
     </a>
     <button class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="Open menu"><span></span><span></span><span></span></button>
     <nav id="menu" class="menu">
+      <a href="#pricing">Pricing</a>
       <a href="#included">What's included</a>
       <a href="#how">How it works</a>
       <a href="#work">Concepts</a>
@@ -50,7 +51,7 @@
       <p class="lead">{{ s.hero.intro | escape }}</p>
       <div class="cta-row">
         <a class="btn" href="#contact">{{ s.hero.button_main | escape }}</a>
-        <a class="btn btn-ghost" href="#included">{{ s.hero.button_secondary | escape }}</a>
+        <a class="btn btn-ghost" href="#pricing">{{ s.hero.button_secondary | escape }}</a>
       </div>
       <ul class="trust">
         {% for item in s.hero.trust_points %}
@@ -80,6 +81,24 @@
         <div class="m-call">{{ s.hero.phone_button_label | escape }}</div>
       </div>
       <div class="price-tag"><small>{{ s.price_label | escape }}</small>{{ s.price | escape }}</div>
+    </div>
+  </div>
+</section>
+
+
+<section id="pricing" class="section alt">
+  <div class="wrap">
+    <p class="eyebrow">{{ s.pricing.eyebrow | escape }}</p>
+    <h2>{{ s.pricing.heading | escape }}</h2>
+    <p class="note">{{ s.pricing.intro | escape }}</p>
+    <div class="grid-3 pricing-grid">
+      {% for item in s.pricing.items %}
+      <article class="card price-card">
+        <h3>{{ item.title | escape }}</h3>
+        <p class="amount">{{ item.price | escape }}</p>
+        <p>{{ item.text | escape }}</p>
+      </article>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -191,7 +210,9 @@
         <li><span>Owner</span>{{ s.owner_name | escape }}</li>
         <li><span>Email</span>{% assign ev = s.email | strip %}{% if ev == '' or ev == '[email]' %}<span class="ph">[email]</span>{% else %}<a href="mailto:{{ ev | escape }}">{{ ev | escape }}</a>{% endif %}</li>
         <li><span>Phone</span>{% assign pv = s.phone | strip %}{% if pv == '' or pv == '[phone]' %}<span class="ph">[phone]</span>{% else %}<a href="tel:{{ pv | replace: ' ', '' | replace: '-', '' | replace: '(', '' | replace: ')', '' | escape }}">{{ pv | escape }}</a>{% endif %}</li>
-        <li><span>LinkedIn</span>{% assign lv = s.linkedin | strip %}{% if lv == '' or lv == '[LinkedIn]' %}<span class="ph">[LinkedIn]</span>{% elsif lv contains 'http' %}<a href="{{ lv | escape }}">{{ lv | escape }}</a>{% else %}<a href="https://{{ lv | escape }}">{{ lv | escape }}</a>{% endif %}</li>
+        {% assign lv = s.linkedin | strip %}{% if lv != '' and lv != '[LinkedIn]' %}
+        <li><span>LinkedIn</span>{% if lv contains 'http' %}<a href="{{ lv | escape }}">{{ lv | escape }}</a>{% else %}<a href="https://{{ lv | escape }}">{{ lv | escape }}</a>{% endif %}</li>
+        {% endif %}
         <li><span>Area</span>{{ s.service_area | escape }}</li>
         {% assign hv = s.hours | strip %}{% if hv and hv != '' %}
         <li><span>Hours</span>{{ hv | escape }}</li>

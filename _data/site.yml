@@ -1,8 +1,8 @@
-business_name: Red River Sites
-owner_name: Jalen Patterson
-email: "[email]"
-phone: "[phone]"
-linkedin: "[LinkedIn]"
+business_name: Gateway Web Co
+owner_name: Jalen
+email: gatewaywebco@gmail.com
+phone: "612-719-4312"
+linkedin: ""
 service_area: Clarksville, TN and nearby
 hours: ""
 footer_place: Clarksville, Tennessee
@@ -12,31 +12,46 @@ photos:
   hero: ""
 
 seo:
-  title: "Red River Sites | $1,000 Websites for Clarksville, TN Businesses"
-  description: "Red River Sites builds fast, mobile-friendly websites for Clarksville, Tennessee small businesses for a flat $1,000. Custom design, contact form, Google Maps, hours, basic SEO and hosting setup."
-  social_title: "Red River Sites | $1,000 Websites for Clarksville Businesses"
-  social_description: "A real, custom website for your Clarksville business. One flat price: $1,000."
+  title: "Gateway Web Co | $500 Websites for Clarksville, TN Businesses"
+  description: "Gateway Web Co builds fast, mobile-friendly websites for Clarksville, Tennessee small businesses. First 10 clients: $500, paid only after you're 100% happy. Hosting is $15/month or $150/year, or a free handover with a domain of about $11/year."
+  social_title: "Gateway Web Co | Websites for Clarksville Businesses"
+  social_description: "A real, custom website for your Clarksville business. First 10 clients: $500, paid only when you're 100% happy. Every cost is listed up front."
 
-price: "$1,000"
-price_label: Flat rate
+price: "$500"
+price_label: First 10 clients
 
 hero:
   eyebrow: Clarksville, Tennessee web design
   headline: A real website for your Clarksville business.
-  highlight: One flat $1,000.
-  intro: Custom design, built for phones, with your hours, map and a contact form, launched and hosted. No monthly agency retainer, no surprise invoices.
+  highlight: "First 10 clients: $500."
+  intro: "Custom design, built for phones, with your hours, map and a contact form. You pay the $500 build only once you're 100% happy with it, and two rounds of changes are included. Hosting and domain options are listed below, with every cost up front."
   button_main: Get my website
-  button_secondary: See what's included
+  button_secondary: See the pricing
   trust_points:
-    - Flat price, quoted up front
-    - Local to Clarksville
-    - You own your site and domain
+    - $500 for the first 10 local clients
+    - Pay only when you're 100% happy
+    - Every cost listed up front
   example_web_address: yourbusiness.com
   phone_button_label: Call now
 
+pricing:
+  eyebrow: Pricing
+  heading: Every cost, up front
+  intro: "No surprise invoices. Here's everything it costs, including what happens after the site is built."
+  items:
+    - title: The build
+      price: "$500"
+      text: "For the first 10 local clients. You pay only after you're 100% happy with the site. Two rounds of changes are included."
+    - title: We host
+      price: "$15/mo or $150/yr"
+      text: "I handle the domain, hosting and small edits. That's the ongoing cost if you want me to keep the site running for you."
+    - title: Or a free handover
+      price: "No handoff fee"
+      text: "I hand the site over at no extra charge. You own the domain (about $11/year). Later edits are $40 each."
+
 included:
   eyebrow: What's included
-  heading: Everything a local business site needs, in one $1,000 build
+  heading: Everything a local business site needs, in one $500 build
   items:
     - icon: "✎"
       title: Custom design
@@ -54,19 +69,19 @@ included:
       title: Basic SEO
       text: 'Page titles, descriptions, local business markup and Google Business Profile tips so you show up for “near me” searches.'
     - icon: "⚡"
-      title: Fast hosting setup
-      text: Secure HTTPS hosting and your domain connected for you. Low or no ongoing hosting cost, in your name.
+      title: Hosting, your way
+      text: "You choose: I can host it for $15/month or $150/year, which covers the domain, hosting and small edits. Or I hand the site over free, you own the domain (about $11/year), and later edits are $40 each."
 
 how:
   eyebrow: How it works
   heading: 'Three steps from “we need a website” to live'
   steps:
     - title: Quick call
-      text: A 15-minute conversation about your business, your customers and what you want the site to do. You get a flat $1,000 quote. No surprises.
+      text: A 15-minute conversation about your business, your customers and what you want the site to do. I'll walk through the $500 first-10 offer and both hosting options. No surprises.
     - title: Design & build
-      text: I design and build your site, then send you a preview link. You request changes until it feels right.
+      text: I design and build your site, then send you a preview link. Two rounds of changes are included, and you pay the $500 only once you're 100% happy.
     - title: Launch
-      text: Your domain, hosting, map and contact form are connected and tested. You're live, and you own all of it.
+      text: Your domain, hosting, map and contact form are connected and tested. You're live. You pick the we-host plan or a free handover, and you know every cost before we start.
 
 why:
   eyebrow: Why it matters
@@ -87,7 +102,7 @@ why:
 concepts:
   eyebrow: Concept work
   heading: Sample concepts
-  note: "These are **design concepts for example businesses**, made to show the style and range of a $1,000 build. They are not real clients."
+  note: "These are **design concepts for example businesses**, made to show the style and range of a $500 build. They are not real clients."
   items:
     - title: Lawn care company
       caption: Big estimate button, service tiles and service-area map for a fictional landscaping crew.
@@ -103,23 +118,25 @@ faq:
   eyebrow: FAQ
   heading: Common questions
   items:
-    - question: What does the $1,000 cover?
-      answer: "Design and build of a custom site (typically up to 5 pages: home, services, about, gallery or menu, contact), mobile optimization, contact form, Google Map and hours, basic on-page SEO, and setting up hosting and your domain."
-    - question: Are there monthly fees?
-      answer: "No monthly fee to me. You'll pay your domain registrar directly (usually about $10–$20 a year). Many small sites can be hosted free or very cheaply. Optional updates and maintenance can be arranged if you want them."
+    - question: What does the $500 cover?
+      answer: "Design and build of a custom site (typically up to 5 pages: home, services, about, gallery or menu, contact), mobile optimization, contact form, Google Map and hours, basic on-page SEO, and setting up hosting and your domain. Two rounds of changes are included. This $500 price is for the first 10 local clients."
+    - question: When do I pay?
+      answer: You pay the $500 only after you're 100% happy with the site. Nothing is due before then.
+    - question: What does hosting cost?
+      answer: "If I host the site for you, it's $15/month or $150/year. That covers the domain, hosting and small edits. If you'd rather run it yourself, I hand the site over free. You own the domain (about $11/year), and later edits are $40 each. Those are the only ongoing costs."
     - question: How long does it take?
       answer: Most sites are ready to launch in one to two weeks, depending on how quickly I get your photos, logo and text.
     - question: Do I own the website?
-      answer: Yes. The domain is registered in your name and the site files are yours.
+      answer: Yes. With the free handover, the domain is registered in your name and the site files are yours. If I host it for you, I can still hand it over later at no extra charge.
     - question: What if I already have a website?
-      answer: If your current site is slow, outdated or hard to use on a phone, I can rebuild it for the same flat price and move your domain over.
-    - question: How do I pay?
-      answer: Typically half to start and half at launch. Payment details are confirmed in your quote.
+      answer: If your current site is slow, outdated or hard to use on a phone, I can rebuild it for the same $500 first-10 price and move your domain over.
+    - question: What do later edits cost?
+      answer: "On the we-host plan ($15/month or $150/year), small edits are included. If you take the free handover, later edits are $40 each."
 
 contact_section:
   eyebrow: Contact
   heading: Let's get your business online
-  intro: Tell me a little about your business and I'll follow up with a flat quote.
+  intro: "Tell me a little about your business and I'll follow up. The first 10 local clients are $500, paid only when you're happy, and every other cost is listed above."
   form_button: Request my quote
-  form_thanks: "Thanks! Online requests go live once the business email is connected. For now, reach Jalen at [email] or [phone]."
+  form_thanks: "Thanks. This form doesn't send yet, so please email or call Jalen at [email] or [phone]."
   form_error: Please fill in your name, business name and a way to reach you.

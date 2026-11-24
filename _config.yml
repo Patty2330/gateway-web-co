@@ -1,7 +1,7 @@
-title: Red River Sites
-description: Flat-rate $1,000 websites for Clarksville, Tennessee businesses.
+title: Gateway Web Co
+description: $500 websites for the first 10 Clarksville, Tennessee businesses, paid only when you're happy.
 url: https://patty2330.github.io
-baseurl: "/red-river-sites"
+baseurl: "/gateway-web-co"
 markdown: kramdown
 exclude:
   - README.md

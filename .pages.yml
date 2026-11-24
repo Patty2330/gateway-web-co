@@ -60,12 +60,12 @@ content:
       - name: email
         label: Email
         type: string
-        description: Your business email. You can leave the placeholder until you have one.
+        description: Your business email.
 
       - name: phone
         label: Phone
         type: string
-        description: Your business phone number. You can leave the placeholder until you have one.
+        description: Your business phone number.
 
       - name: linkedin
         label: LinkedIn
@@ -91,12 +91,44 @@ content:
         label: Website price
         type: string
         required: true
-        description: Shown on the price badge (for example $1,000). If you change this, also update any headlines or FAQ answers that mention the price.
+        description: Shown on the price badge (for example $500). If you change this, also update any headlines or FAQ answers that mention the price.
 
       - name: price_label
         label: Price badge label
         type: string
         description: The small text above the price, for example "Flat rate."
+
+      - name: pricing
+        label: Pricing section
+        type: object
+        fields:
+          - name: eyebrow
+            label: Small section label
+            type: string
+          - name: heading
+            label: Section heading
+            type: string
+          - name: intro
+            label: Introduction
+            type: text
+          - name: items
+            label: Price options
+            type: object
+            list:
+              min: 1
+              collapsible:
+                collapsed: true
+                summary: "{title}"
+            fields:
+              - name: title
+                label: Title
+                type: string
+              - name: price
+                label: Price
+                type: string
+              - name: text
+                label: Description
+                type: text
 
       - name: seo
         label: What Google and the browser tab show
@@ -130,7 +162,7 @@ content:
           - name: highlight
             label: Headline highlight
             type: string
-            description: The second part of the headline, shown in red on its own line (for example "One flat $1,000.").
+            description: The second part of the headline, shown in red on its own line (for example "First 10 clients: $500.").
           - name: intro
             label: Introduction
             type: text
