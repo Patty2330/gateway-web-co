@@ -6,6 +6,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { UnlockPanel } from "@/components/unlock-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { gateway } from "@/lib/gateway";
 import { isPagesDemo } from "@/lib/pages";
 import { formatCityState } from "@/lib/place";
 import type { PublicScan } from "@/lib/present";
@@ -333,7 +334,7 @@ export function ResultsView({
 
       <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.1fr]" id="fix">
         <div>
-          <p className="text-sm uppercase tracking-[0.16em] text-accent">Gateway Web Co</p>
+          <p className="text-sm uppercase tracking-[0.16em] text-accent">{gateway.name}</p>
           <h2 className="mt-2 font-serif text-4xl leading-tight">Get it fixed</h2>
           <p className="mt-3 max-w-md text-base leading-7 text-muted-foreground">
             Jalen builds websites for Clarksville businesses. The first 10 local clients are

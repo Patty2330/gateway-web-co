@@ -5,7 +5,7 @@ import { deliverEmail, mailConfig, postResendEmail } from "@/lib/email";
 
 const message = {
   to: "owner@example.com",
-  subject: "New Gateway Web Co note from Sam",
+  subject: "New Two Forks Studio note from Sam",
   text: "Sam wants a website.",
   scanId: null,
 };
@@ -43,7 +43,7 @@ describe("outbox email", () => {
     const fetchImpl = vi.fn(async () => new Response("{}", { status: 200 }));
     const sent = await deliverEmail(store, message, {
       apiKey: "re_test_key",
-      from: "Gateway Web Co <onboarding@resend.dev>",
+      from: "Two Forks Studio <onboarding@resend.dev>",
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(sent.status).toBe("sent");
@@ -53,7 +53,7 @@ describe("outbox email", () => {
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer re_test_key");
     expect(JSON.parse(String(init.body))).toMatchObject({
-      from: "Gateway Web Co <onboarding@resend.dev>",
+      from: "Two Forks Studio <onboarding@resend.dev>",
       to: ["owner@example.com"],
       subject: message.subject,
       text: message.text,

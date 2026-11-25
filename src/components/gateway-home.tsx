@@ -161,7 +161,7 @@ export function GatewayHome({ site }: { site: SiteContent }) {
               </p>
               <p>
                 The check is free. A full write-up is $49, and $19 a month watches it for you.
-                If the site itself is the problem, Gateway can build it.
+                If the site itself is the problem, {site.business_name} can build it.
               </p>
               <div className="cta-row">
                 <a className="btn" href={sitePath("/check")}>Run the free check</a>

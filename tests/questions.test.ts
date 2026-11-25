@@ -62,7 +62,7 @@ describe("findings", () => {
     expect(findings[0]?.id).toBe("google-profile");
     expect(findings.map((finding) => finding.id)).toContain("website-missing");
     expect(findings.find((finding) => finding.id === "website-missing")?.fix).toContain(
-      "Gateway Web Co",
+      "Two Forks Studio",
     );
     expect(findings.length).toBeGreaterThanOrEqual(5);
     const priorities = findings.map((finding) => finding.priority);

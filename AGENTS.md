@@ -4,7 +4,7 @@ Rules for anyone (including agents) changing this repo.
 
 ## Stack
 
-This is one Next.js app. The homepage is the Gateway Web Co marketing site. The free AI visibility check, the $49 report, and the $19/month watch live in the same app.
+This is one Next.js app. The homepage is the Two Forks Studio marketing site. The free AI visibility check, the $49 report, and the $19/month watch live in the same app.
 
 - Next.js (App Router), TypeScript, Tailwind, and shadcn/ui for the check.
 - The marketing page keeps the original CSS in `styles.css` and the words in `_data/site.yml`.
@@ -25,12 +25,12 @@ Open http://127.0.0.1:43123
 npm test
 ```
 
-Tests cover how answers are read, how the score is calculated, and that the website-fix copy names Gateway Web Co.
+Tests cover how answers are read, how the score is calculated, and that the website-fix copy names Two Forks Studio.
 
 ## Conventions
 
 - Keep the marketing page looking like the current site. Change words in `_data/site.yml` when the offer changes. Do not restyle `styles.css` for a new campaign unless Jalen asks.
-- The check sells Gateway Web Co's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The $49 report and $19/month watch stay as they are.
+- The check sells Two Forks Studio's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The $49 report and $19/month watch stay as they are.
 - The visibility check uses Perplexity only. Keys come from the environment, never from the database or the git history.
 - Email stays in the outbox unless both `RESEND_API_KEY` and `EMAIL_FROM` are set. Then send through Resend and record sent or failed. A send failure must not crash the request. The Pages demo has no API routes and must not send mail.
 - Do not add a second component library.
@@ -48,6 +48,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 
 ## Lessons / corrections
 
+- Public brand name is Two Forks Studio (Nov 25, 2026); keep internal repo/service names unchanged.
 - (Nov 25, 2026, from Jalen) No agent may call work done. Every branch or PR goes to Code Reviewer, which builds and tests it, checks it in a real browser, and gives a PASS with proof (commands, output, screenshots). Web Chief merges or shows Jalen only after that PASS.
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
 - Add DATABASE_URL before PERPLEXITY_API_KEY. The daily cap and saved checks need a persistent database. On Render, turning on the Perplexity key without Postgres leaves rate limits on an ephemeral disk (QA review, Nov 25 2026).
