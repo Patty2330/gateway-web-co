@@ -104,6 +104,13 @@ function sampleScan(): PublicScan {
   };
 }
 
+
+function expectUnfinishedPdfHasNoScore(text: string) {
+  expect(text).not.toMatch(/0\s*\/\s*100/);
+  expect(text).not.toMatch(/\d+\s*\/\s*100/);
+  expect(text).not.toMatch(/null\s*\/\s*100/i);
+}
+
 describe("public brand", () => {
   it("uses Two Forks Studio as the homepage title and in seo.description", () => {
     const site = getSite();
@@ -142,8 +149,14 @@ describe("public brand", () => {
     expectPublicBrand(text);
     expect(text).toContain("Get it fixed by Two Forks Studio");
     expect(text).toContain("The check didn't finish");
-    expect(text).not.toMatch(/0\s*\/\s*100/);
-    expect(text).not.toMatch(/\d+\s*\/\s*100/);
+    expectUnfinishedPdfHasNoScore(text);
+  });
+
+  it("fails if the score branch is forced with a null score", () => {
+    const forced = `${null} / 100`;
+    expect(forced).toBe("null / 100");
+    expect(() => expectUnfinishedPdfHasNoScore(forced)).toThrow();
+    expect(() => expectUnfinishedPdfHasNoScore("null/100")).toThrow();
   });
 
   it("renders Two Forks Studio in the header and footer", () => {

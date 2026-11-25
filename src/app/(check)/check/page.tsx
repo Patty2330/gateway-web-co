@@ -1,17 +1,7 @@
-import { Suspense } from "react";
-import { connection } from "next/server";
-
 import { ScanForm } from "@/components/scan-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { gateway } from "@/lib/gateway";
-import { isPagesDemo, sitePath } from "@/lib/pages";
-import { anyProviderConfigured } from "@/lib/providers";
-
-async function ScanFormWithMode() {
-  if (isPagesDemo()) return <ScanForm sampleMode />;
-  await connection();
-  return <ScanForm sampleMode={!anyProviderConfigured()} />;
-}
+import { sitePath } from "@/lib/pages";
 
 export default function CheckPage() {
   return (
@@ -48,7 +38,7 @@ export default function CheckPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<ScanForm />}><ScanFormWithMode /></Suspense>
+          <ScanForm />
         </CardContent>
       </Card>
     </main>

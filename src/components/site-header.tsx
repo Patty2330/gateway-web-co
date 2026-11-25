@@ -1,14 +1,12 @@
 import Link from "next/link";
 
+import { stickyHeaderTopClass } from "@/lib/banner-layout";
 import { gateway } from "@/lib/gateway";
-import { isPagesDemo } from "@/lib/pages";
-import { anyProviderConfigured } from "@/lib/providers";
 
-export function SiteHeader({ offset }: { offset?: boolean } = {}) {
-  const raise = offset ?? (isPagesDemo() || !anyProviderConfigured());
+export function SiteHeader() {
   return (
     <header
-      className={`sticky z-20 border-b border-border/80 bg-background/90 backdrop-blur ${raise ? "top-11" : "top-0"}`}
+      className={`sticky z-20 border-b border-border/80 bg-background/90 backdrop-blur ${stickyHeaderTopClass}`}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3">
         <Link href="/" className="flex min-w-0 items-center gap-2">

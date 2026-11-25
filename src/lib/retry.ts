@@ -52,9 +52,25 @@ export function backoffWithJitter(
   return Math.min(maxWaitMs, Math.round(exp + jitter));
 }
 
-export async function defaultSleep(ms: number): Promise<void> {
+export async function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
   if (ms <= 0) return;
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  if (signal?.aborted) {
+    throw abortError();
+  }
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    if (signal) {
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) onAbort();
+    }
+  });
 }
 
 export type RetryFetchOptions = {
@@ -64,7 +80,7 @@ export type RetryFetchOptions = {
   maxWaitMs?: number;
   baseMs?: number;
   fetchImpl?: typeof fetch;
-  sleep?: (ms: number) => Promise<void>;
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   now?: () => number;
   random?: () => number;
   dispatcher?: unknown;
@@ -77,6 +93,32 @@ function abortError(): Error {
   const error = new Error("This operation was aborted");
   error.name = "AbortError";
   return error;
+}
+
+async function sleepWithAbort(
+  sleep: (ms: number, signal?: AbortSignal) => Promise<void>,
+  ms: number,
+  signal?: AbortSignal,
+): Promise<void> {
+  if (signal?.aborted) throw abortError();
+  if (ms <= 0) return;
+  if (!signal) {
+    await sleep(ms);
+    return;
+  }
+  let onAbort: (() => void) | undefined;
+  try {
+    await Promise.race([
+      sleep(ms, signal),
+      new Promise<never>((_, reject) => {
+        onAbort = () => reject(abortError());
+        signal.addEventListener("abort", onAbort, { once: true });
+      }),
+    ]);
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort);
+  }
+  if (signal.aborted) throw abortError();
 }
 
 /**
@@ -133,7 +175,7 @@ export async function fetchWithRetry(
       if (isLast || cancelled() || wait >= remaining()) {
         return response;
       }
-      await sleep(wait);
+      await sleepWithAbort(sleep, wait, signal);
     } catch (error) {
       lastError = error;
       const isLast = attempt >= maxAttempts - 1;
@@ -144,7 +186,7 @@ export async function fetchWithRetry(
       if (cancelled() || wait >= remaining()) {
         throw error;
       }
-      await sleep(wait);
+      await sleepWithAbort(sleep, wait, signal);
     }
   }
 

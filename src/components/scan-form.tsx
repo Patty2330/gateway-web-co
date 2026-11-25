@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -9,26 +9,57 @@ import { Label } from "@/components/ui/label";
 import { demoScanRecord } from "@/lib/demo-scan";
 import { isPagesDemo } from "@/lib/pages";
 import { savePagesScan } from "@/lib/pages-store";
+import { readScanFormDraft, writeScanFormDraft } from "@/lib/scan-form-draft";
 import { US_STATES } from "@/lib/states";
 
 const fieldClass = "h-11 bg-card px-3 text-base md:text-base";
 
-export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
+export function ScanForm({ sampleMode: sampleModeProp }: { sampleMode?: boolean } = {}) {
   const router = useRouter();
-  const [businessName, setBusinessName] = useState("");
-  const [category, setCategory] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("TN");
-  const [websiteUrl, setWebsiteUrl] = useState("");
+  const initial = readScanFormDraft();
+  const [businessName, setBusinessName] = useState(initial.businessName);
+  const [category, setCategory] = useState(initial.category);
+  const [city, setCity] = useState(initial.city);
+  const [state, setState] = useState(initial.state);
+  const [websiteUrl, setWebsiteUrl] = useState(initial.websiteUrl);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [fetchedSampleMode, setFetchedSampleMode] = useState<boolean | null>(null);
+  const sampleMode = sampleModeProp ?? (isPagesDemo() ? true : Boolean(fetchedSampleMode));
+
+  useEffect(() => {
+    if (sampleModeProp != null || isPagesDemo()) return;
+    let cancelled = false;
+    fetch("/api/health", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ mode?: string }>)
+      .then((data) => {
+        if (!cancelled) setFetchedSampleMode(data.mode !== "live");
+      })
+      .catch(() => {
+        // Keep the last known mode if the health check fails.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sampleModeProp]);
+
+  function setDraft(update: Parameters<typeof writeScanFormDraft>[0]) {
+    const next = writeScanFormDraft(update);
+    if (update.businessName != null) setBusinessName(next.businessName);
+    if (update.category != null) setCategory(next.category);
+    if (update.city != null) setCity(next.city);
+    if (update.state != null) setState(next.state);
+    if (update.websiteUrl != null) setWebsiteUrl(next.websiteUrl);
+  }
 
   function fillExample() {
-    setBusinessName("Harper's Plumbing");
-    setCategory("plumber");
-    setCity("Clarksville");
-    setState("TN");
-    setWebsiteUrl("");
+    setDraft({
+      businessName: "Harper's Plumbing",
+      category: "plumber",
+      city: "Clarksville",
+      state: "TN",
+      websiteUrl: "",
+    });
     setError("");
   }
 
@@ -80,7 +111,7 @@ export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
           id="businessName"
           className={fieldClass}
           value={businessName}
-          onChange={(event) => setBusinessName(event.target.value)}
+          onChange={(event) => setDraft({ businessName: event.target.value })}
           placeholder="Harper's Plumbing"
           autoComplete="organization"
           required
@@ -93,7 +124,7 @@ export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
           className={fieldClass}
           list="categories"
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) => setDraft({ category: event.target.value })}
           placeholder="plumber, salon, dentist…"
           required
         />
@@ -112,7 +143,7 @@ export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
             id="city"
             className={fieldClass}
             value={city}
-            onChange={(event) => setCity(event.target.value)}
+            onChange={(event) => setDraft({ city: event.target.value })}
             placeholder="Clarksville"
             required
           />
@@ -122,7 +153,7 @@ export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
           <select
             id="state"
             value={state}
-            onChange={(event) => setState(event.target.value)}
+            onChange={(event) => setDraft({ state: event.target.value })}
             className="h-11 rounded-lg border border-input bg-card px-3 text-base"
           >
             {US_STATES.map((item) => (
@@ -139,7 +170,7 @@ export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
           id="websiteUrl"
           className={fieldClass}
           value={websiteUrl}
-          onChange={(event) => setWebsiteUrl(event.target.value)}
+          onChange={(event) => setDraft({ websiteUrl: event.target.value })}
           placeholder="https://yourbusiness.com"
           inputMode="url"
         />

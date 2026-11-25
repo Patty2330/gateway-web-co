@@ -40,3 +40,7 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      # Public Render traffic goes through Cloudflare, which sets this header.
+      # The platform also sets RENDER=true, which is enough for the same default.
+      - key: TRUST_CF_CONNECTING_IP
+        value: "true"

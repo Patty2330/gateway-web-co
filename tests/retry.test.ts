@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   backoffWithJitter,
+  defaultSleep,
   fetchWithRetry,
   isRetryableHttpStatus,
   parseRetryAfterMs,
@@ -176,5 +177,42 @@ describe("fetchWithRetry", () => {
       ),
     ).rejects.toMatchObject({ name: "AbortError" });
     expect(calls).toBe(1);
+  });
+
+  it("stops a retry sleep when the parent signal aborts", async () => {
+    let calls = 0;
+    const controller = new AbortController();
+    let releaseSleep: (() => void) | undefined;
+    const sleeping = new Promise<void>((resolve) => {
+      releaseSleep = resolve;
+    });
+    const fetchImpl: typeof fetch = async () => {
+      calls += 1;
+      return new Response("rate limited", { status: 429, headers: { "Retry-After": "10" } });
+    };
+    const pending = fetchWithRetry("https://example.com/agent", { method: "POST" }, {
+      timeoutMs: 1_000,
+      fetchImpl,
+      signal: controller.signal,
+      sleep: async () => {
+        releaseSleep?.();
+        await new Promise(() => {
+          // Wait until abort ends the race; a hang here used to ignore cancel.
+        });
+      },
+    });
+    await sleeping;
+    const started = Date.now();
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(calls).toBe(1);
+  });
+
+  it("defaultSleep rejects when the signal aborts during the wait", async () => {
+    const controller = new AbortController();
+    const pending = defaultSleep(10_000, controller.signal);
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 });
