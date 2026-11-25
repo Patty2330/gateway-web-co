@@ -7,6 +7,7 @@ import { UnlockPanel } from "@/components/unlock-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPagesDemo } from "@/lib/pages";
+import { formatCityState } from "@/lib/place";
 import type { PublicScan } from "@/lib/present";
 import type { AnswerRecord } from "@/lib/types";
 
@@ -41,7 +42,7 @@ export function ResultsView({
         <Link href="/" className="underline-offset-4 hover:underline">
           New check
         </Link>
-        <span> · {scan.category} in {scan.city}, {scan.state}</span>
+        <span> · {scan.category} in {formatCityState(scan.city, scan.state)}</span>
       </p>
       <h1 className="mt-3 max-w-3xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
         {scan.businessName}

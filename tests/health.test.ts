@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { databaseType, missingDatabaseUrlWarning } from "@/lib/db";
+import { databaseType, logMissingDatabaseUrl, missingDatabaseUrlWarning } from "@/lib/db";
 
 describe("health database type", () => {
   it("reports postgres or sqlite and never returns the URL", () => {
@@ -27,5 +27,15 @@ describe("health database type", () => {
       }),
     ).toBeNull();
     expect(missingDatabaseUrlWarning({ NODE_ENV: "test" })).toBeNull();
+  });
+
+  it("prints the missing DATABASE_URL warning only once", () => {
+    const flags = globalThis as unknown as { __gatewayMissingDatabaseUrlLogged?: boolean };
+    flags.__gatewayMissingDatabaseUrlLogged = false;
+    const messages: string[] = [];
+    logMissingDatabaseUrl({ NODE_ENV: "production" }, (message) => messages.push(message));
+    logMissingDatabaseUrl({ NODE_ENV: "production" }, (message) => messages.push(message));
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatch(/DATABASE_URL is not set/i);
   });
 });

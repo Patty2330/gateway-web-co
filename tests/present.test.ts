@@ -32,7 +32,7 @@ function record(overrides: Partial<ScanRecord> = {}, usable = 8): ScanRecord {
     competitors: [],
     findings: [],
     siteCheck: null,
-    score: usable >= 6 ? 40 : 0,
+    score: usable >= 6 ? 40 : null,
     mentionCount: usable,
     answerCount: usable,
     complete: usable >= 6,

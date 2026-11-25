@@ -20,18 +20,19 @@ function answers(usable: number, total = 8) {
   }));
 }
 
-function payload(score: number, usable = 8): ScanPayload {
+function payload(score: number | null, usable = 8): ScanPayload {
   const rows = answers(usable);
+  const complete = usable >= 6;
   return {
     questions: [],
     answers: rows,
     competitors: [],
     findings: [],
     siteCheck: null,
-    score,
+    score: complete ? score : null,
     mentionCount: rows.filter((row) => row.mentioned).length,
     answerCount: usable,
-    complete: usable >= 6,
+    complete,
     providers: [],
   };
 }
@@ -114,8 +115,8 @@ describe("store", () => {
     const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
     await store.insertScan(
       scan("short", {
-        score: 0,
-        payload: payload(0, 1),
+        score: null,
+        payload: payload(null, 1),
       }),
     );
     const cached = await store.findRecentByIp(
@@ -146,8 +147,8 @@ describe("store", () => {
       scan("later-short", {
         createdAt: "2026-11-25T12:30:00.000Z",
         updatedAt: "2026-11-25T12:30:00.000Z",
-        payload: payload(0, 1),
-        score: 0,
+        payload: payload(null, 1),
+        score: null,
       }),
     );
     const cached = await store.findRecentCache(
@@ -156,5 +157,18 @@ describe("store", () => {
     );
     expect(cached?.id).toBe("done");
     expect(cached?.score).toBe(70);
+
+    const unfinished = await store.getScan("later-short");
+    expect(unfinished?.score).toBeNull();
+  });
+
+  it("refunds a rate-limit count but never goes below zero", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    expect(await store.consumeRateLimit("ip-1", "2026-11-25")).toBe(1);
+    expect(await store.consumeRateLimit("ip-1", "2026-11-25")).toBe(2);
+    expect(await store.refundRateLimit("ip-1", "2026-11-25")).toBe(1);
+    expect(await store.refundRateLimit("ip-1", "2026-11-25")).toBe(0);
+    expect(await store.refundRateLimit("ip-1", "2026-11-25")).toBe(0);
+    expect(await store.refundRateLimit("missing", "2026-11-25")).toBe(0);
   });
 });

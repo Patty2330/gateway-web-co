@@ -28,19 +28,19 @@ export async function POST(request: Request) {
       },
       scan.payload.questions,
     );
-    if (!scanIsComplete(payload)) {
+    if (!scanIsComplete(payload) || payload.score == null) {
       // Leave nextRunAt due so the next cron can retry. Do not overwrite a finished report.
       continue;
     }
     const nextRunAt = addDaysIso(new Date(), monitorDays());
     await store.updateResults(scan.id, payload, {
-      previousScore: scan.score,
+      previousScore: scan.score ?? 0,
       nextRunAt,
     });
     if (scan.email) {
       const message = monitorEmail({
         businessName: scan.businessName,
-        previousScore: scan.score,
+        previousScore: scan.score ?? 0,
         score: payload.score,
         mentionCount: payload.mentionCount,
         answerCount: payload.answerCount,
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       });
       await getEmailSender().send({ to: scan.email, ...message, scanId: scan.id });
     }
-    results.push({ id: scan.id, previous: scan.score, score: payload.score });
+    results.push({ id: scan.id, previous: scan.score ?? 0, score: payload.score });
   }
 
   return Response.json({ ran: results.length, results });

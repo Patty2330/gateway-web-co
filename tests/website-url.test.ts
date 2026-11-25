@@ -41,5 +41,10 @@ describe("normalizeWebsite", () => {
     expect(normalizeWebsite("https://www.catfishhouseclarksville.com/")).toBe(
       "https://www.catfishhouseclarksville.com/",
     );
+    expect(normalizeWebsite("joes_pizza.com")).toBe("https://joes_pizza.com/");
+    expect(normalizeWebsite("example.com.")).toBe("https://example.com/");
+    expect(normalizeWebsite("example.com:8080")).toBe("https://example.com:8080/");
+    expect(normalizeWebsite("[::1]")).toBe("https://[::1]/");
+    expect(normalizeWebsite("http://[::1]/")).toBe("http://[::1]/");
   });
 });

@@ -138,4 +138,43 @@ describe("fetchWithRetry", () => {
     expect(response.status).toBe(429);
     expect(calls).toBe(1);
   });
+
+  it("does not retry a request aborted by the parent deadline", async () => {
+    let calls = 0;
+    const controller = new AbortController();
+    const fetchImpl: typeof fetch = async (_url, init) => {
+      calls += 1;
+      return new Promise((_, reject) => {
+        const fail = () => {
+          const error = new Error("This operation was aborted");
+          error.name = "AbortError";
+          reject(error);
+        };
+        const signal = init?.signal;
+        if (signal?.aborted) {
+          fail();
+          return;
+        }
+        signal?.addEventListener("abort", fail, { once: true });
+      });
+    };
+    const deadlineAt = Date.now() + 40;
+    setTimeout(() => controller.abort(), 40);
+    await expect(
+      fetchWithRetry(
+        "https://api.perplexity.ai/v1/agent",
+        { method: "POST" },
+        {
+          timeoutMs: 20_000,
+          signal: controller.signal,
+          deadlineAt,
+          fetchImpl,
+          sleep: async () => {
+            throw new Error("should not wait to retry a cancelled request");
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(calls).toBe(1);
+  });
 });

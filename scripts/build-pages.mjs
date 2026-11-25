@@ -7,6 +7,10 @@ const hideRoot = path.join(root, ".pages-build-hide");
 const moves = [
   [path.join(root, "src/app/api"), path.join(hideRoot, "api")],
   [path.join(root, "src/app/(check)/scans/[id]"), path.join(hideRoot, "scan-id")],
+  // These tests import API route modules that are hidden for the static export.
+  [path.join(root, "tests/checkout-route.test.ts"), path.join(hideRoot, "checkout-route.test.ts")],
+  [path.join(root, "tests/scans-route.test.ts"), path.join(hideRoot, "scans-route.test.ts")],
+  [path.join(root, "tests/cron.test.ts"), path.join(hideRoot, "cron.test.ts")],
 ];
 
 function hide() {

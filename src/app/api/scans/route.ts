@@ -5,7 +5,8 @@ import { zodErrorMessage } from "@/lib/form-error";
 import { scanFormSchema } from "@/lib/schemas";
 import { buildCacheKey, executeScan, scanMode } from "@/lib/engine";
 import { providerSignature } from "@/lib/providers";
-import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, hashIp } from "@/lib/request";
+import { scanIsComplete } from "@/lib/scan-complete";
+import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, hashIp, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
 import { normalizeWebsite } from "@/lib/website-url";
 import type { ScanRecord } from "@/lib/types";
 
@@ -61,7 +62,8 @@ export async function POST(request: Request) {
   const own = await store.findRecentByIp(ipHash, cacheKey, since);
   if (own) return Response.json({ id: own.id, cached: true });
 
-  const count = await store.consumeRateLimit(ipHash, new Date().toISOString().slice(0, 10));
+  const day = new Date().toISOString().slice(0, 10);
+  const count = await store.consumeRateLimit(ipHash, day);
   if (count > dailyLimit()) {
     return Response.json(
       {
@@ -92,8 +94,18 @@ export async function POST(request: Request) {
     return Response.json({ id, cached: true });
   }
 
+  async function refundIfUnfinished(): Promise<void> {
+    const unfinishedCount = await store.consumeRateLimit(unfinishedRateKey(ipHash), day);
+    if (shouldRefundUnfinishedAttempt(unfinishedCount)) {
+      await store.refundRateLimit(ipHash, day);
+    }
+  }
+
   try {
     const payload = await executeScan(input);
+    if (!scanIsComplete(payload)) {
+      await refundIfUnfinished();
+    }
     const id = randomUUID();
     await store.insertScan({
       id,
@@ -115,6 +127,11 @@ export async function POST(request: Request) {
     return Response.json({ id, cached: false });
   } catch (error) {
     console.error(error);
+    try {
+      await refundIfUnfinished();
+    } catch (refundError) {
+      console.error(refundError);
+    }
     return Response.json(
       { error: "The check didn't finish. Please try again in a minute." },
       { status: 500 },

@@ -100,7 +100,7 @@ export type ScanPayload = {
   competitors: CompetitorStat[];
   findings: Finding[];
   siteCheck: SiteCheck | null;
-  score: number;
+  score: number | null;
   mentionCount: number;
   answerCount: number;
   complete: boolean;
@@ -127,7 +127,7 @@ export type ScanRecord = {
   ipHash: string;
   mode: ScanMode;
   cacheKey: string;
-  score: number;
+  score: number | null;
   tier: Tier;
   email: string | null;
   stripeSessionId: string | null;

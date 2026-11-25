@@ -28,7 +28,7 @@ const SCHEMA = [
     ip_hash TEXT NOT NULL,
     mode TEXT NOT NULL,
     cache_key TEXT NOT NULL,
-    score INTEGER NOT NULL,
+    score INTEGER,
     tier TEXT NOT NULL,
     email TEXT,
     stripe_session_id TEXT,
@@ -78,6 +78,8 @@ function nullable(value: SqlValue | undefined): string | null {
 }
 
 function mapScan(row: Row): ScanRecord {
+  const payload = JSON.parse(text(row.payload)) as ScanPayload;
+  const complete = payload.complete ?? scanIsComplete(payload);
   return {
     id: text(row.id),
     businessName: text(row.business_name),
@@ -90,14 +92,14 @@ function mapScan(row: Row): ScanRecord {
     ipHash: text(row.ip_hash),
     mode: text(row.mode) === "live" ? "live" : "demo",
     cacheKey: text(row.cache_key),
-    score: Number(row.score ?? 0),
+    score: complete ? Number(row.score ?? payload.score ?? 0) : null,
     tier: (text(row.tier) || "free") as Tier,
     email: nullable(row.email),
     stripeSessionId: nullable(row.stripe_session_id),
     stripeSubscriptionId: nullable(row.stripe_subscription_id),
     nextRunAt: nullable(row.next_run_at),
     previousScore: row.previous_score == null ? null : Number(row.previous_score),
-    payload: JSON.parse(text(row.payload)) as ScanPayload,
+    payload,
   };
 }
 
@@ -297,6 +299,22 @@ class Store {
     );
     return Number(row?.count ?? 1);
   }
+
+  /** Decrement today's count, but never below zero. Safe to call more than once. */
+  async refundRateLimit(ipHash: string, day: string): Promise<number> {
+    const row = await this.sql.get(
+      `UPDATE rate_limits SET count = count - 1
+       WHERE ip_hash = ? AND day = ? AND count > 0
+       RETURNING count`,
+      [ipHash, day],
+    );
+    if (row) return Number(row.count ?? 0);
+    const existing = await this.sql.get(
+      `SELECT count FROM rate_limits WHERE ip_hash = ? AND day = ?`,
+      [ipHash, day],
+    );
+    return Number(existing?.count ?? 0);
+  }
 }
 
 class SqliteSql implements Sql {
@@ -346,11 +364,12 @@ async function initSql(sql: Sql) {
   for (const statement of [
     `ALTER TABLE emails ADD COLUMN status TEXT NOT NULL DEFAULT 'stored'`,
     `ALTER TABLE emails ADD COLUMN error TEXT`,
+    `ALTER TABLE scans ALTER COLUMN score DROP NOT NULL`,
   ]) {
     try {
       await sql.run(statement);
     } catch {
-      // The column is already there.
+      // The column is already there, or this engine cannot drop NOT NULL.
     }
   }
 }
@@ -371,15 +390,15 @@ export function missingDatabaseUrlWarning(env: NodeJS.ProcessEnv = process.env):
   return MISSING_DATABASE_URL_WARNING;
 }
 
-let loggedMissingDatabaseUrl = false;
+const processFlags = globalThis as unknown as { __gatewayMissingDatabaseUrlLogged?: boolean };
 
 export function logMissingDatabaseUrl(
   env: NodeJS.ProcessEnv = process.env,
   log: (message: string) => void = console.warn,
 ): void {
   const message = missingDatabaseUrlWarning(env);
-  if (!message || loggedMissingDatabaseUrl) return;
-  loggedMissingDatabaseUrl = true;
+  if (!message || processFlags.__gatewayMissingDatabaseUrlLogged) return;
+  processFlags.__gatewayMissingDatabaseUrlLogged = true;
   log(message);
 }
 

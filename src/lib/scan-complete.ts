@@ -10,6 +10,9 @@ export const MIN_ANSWERS_TO_FINISH = 6;
 export const UNFINISHED_SCAN_MESSAGE =
   "The check didn't finish. Please try again in a few minutes.";
 
+export const UNFINISHED_CHECKOUT_MESSAGE =
+  "This check didn't finish, so there's nothing to buy yet. Please run it again.";
+
 export function usableAnswerCount(answers: Pick<AnswerRecord, "error">[]): number {
   return answers.filter((answer) => !answer.error).length;
 }

@@ -1,5 +1,6 @@
 import { getStore } from "@/lib/db";
 import { zodErrorMessage } from "@/lib/form-error";
+import { UNFINISHED_CHECKOUT_MESSAGE, scanIsComplete } from "@/lib/scan-complete";
 import { checkoutFormSchema } from "@/lib/schemas";
 import { appUrlFrom } from "@/lib/request";
 import { createCheckoutSession } from "@/lib/stripe";
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
   const store = await getStore();
   const scan = await store.getScan(parsed.data.scanId);
   if (!scan) return Response.json({ error: "We can't find that check." }, { status: 404 });
+  if (!scanIsComplete(scan.payload)) {
+    return Response.json({ error: UNFINISHED_CHECKOUT_MESSAGE }, { status: 409 });
+  }
 
   try {
     const url = await createCheckoutSession({

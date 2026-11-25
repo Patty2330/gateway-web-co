@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 
+import { formatCityState } from "@/lib/place";
 import type { PublicScan } from "@/lib/present";
 
 const REPORT_ZONE = "America/Chicago";
@@ -43,7 +44,7 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
     doc.font("Times-Roman").fontSize(12);
     writeLine(
       doc,
-      `${scan.category} in ${scan.city}, ${scan.state}${scan.websiteUrl ? `  ·  ${scan.websiteUrl}` : ""}`,
+      `${scan.category} in ${formatCityState(scan.city, scan.state)}${scan.websiteUrl ? `  ·  ${scan.websiteUrl}` : ""}`,
     );
     writeLine(doc, `Checked ${formatReportTime(scan.createdAt)}`);
     doc.moveDown(0.6);

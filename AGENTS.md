@@ -50,7 +50,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
 - Add DATABASE_URL before PERPLEXITY_API_KEY. The daily cap and saved checks need a persistent database. On Render, turning on the Perplexity key without Postgres leaves rate limits on an ephemeral disk (QA review, Nov 25 2026).
-- Cap Perplexity concurrency at 2 and retry 429s and brief 5xx errors with backoff. Never score or cache a scan with fewer than 6 of 8 answers; show "The check didn't finish" instead. /api/health reports the database type as postgres or sqlite, without the URL (QA live-scan review, Nov 25 2026).
+- Cap Perplexity concurrency at 2 and retry 429s and brief 5xx errors with backoff. A live check has a hard 40-second wall-clock cap: abort in-flight Perplexity requests at the deadline and return "The check didn't finish" if fewer than 6 of 8 answers are back. Never score or cache a scan with fewer than 6 of 8 answers. Any non-complete scan must be rejected by checkout (409) and must not consume the daily rate limit, aside from a small cap on unfinished retries. /api/health reports the database type as postgres or sqlite, without the URL (QA live-scan review, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

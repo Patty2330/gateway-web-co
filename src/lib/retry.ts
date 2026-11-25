@@ -68,11 +68,21 @@ export type RetryFetchOptions = {
   now?: () => number;
   random?: () => number;
   dispatcher?: unknown;
+  signal?: AbortSignal;
+  /** Wall-clock deadline. Requests and waits must finish before this time. */
+  deadlineAt?: number;
 };
+
+function abortError(): Error {
+  const error = new Error("This operation was aborted");
+  error.name = "AbortError";
+  return error;
+}
 
 /**
  * GET/POST with retries for 429, transient 5xx, and brief network failures.
- * Honors Retry-After when present. Stops when attempts or the total time budget run out.
+ * Honors Retry-After when present. Stops when attempts, the time budget, or
+ * a parent deadline/abort signal say to stop.
  */
 export async function fetchWithRetry(
   url: string,
@@ -87,18 +97,31 @@ export async function fetchWithRetry(
   const now = options.now ?? Date.now;
   const random = options.random ?? Math.random;
   const started = now();
+  const signal = options.signal;
+  const deadlineAt = options.deadlineAt;
+
+  const timeLeft = () => (deadlineAt == null ? Infinity : deadlineAt - now());
+  const budgetLeft = () => maxTotalMs - (now() - started);
+  const remaining = () => Math.min(timeLeft(), budgetLeft());
+  const cancelled = () => Boolean(signal?.aborted) || remaining() <= 0;
 
   let lastError: unknown;
   let lastResponse: Response | undefined;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (cancelled()) {
+      if (lastResponse) return lastResponse;
+      throw lastError instanceof Error ? lastError : abortError();
+    }
+    const attemptTimeout = Math.min(options.timeoutMs, Math.max(0, remaining()));
     try {
       const response = await fetchWithTimeout(
         url,
         init,
-        options.timeoutMs,
+        attemptTimeout,
         options.dispatcher,
         options.fetchImpl ?? fetch,
+        signal,
       );
       lastResponse = response;
       if (response.ok || !isRetryableHttpStatus(response.status)) {
@@ -107,18 +130,18 @@ export async function fetchWithRetry(
       const isLast = attempt >= maxAttempts - 1;
       const fallback = backoffWithJitter(attempt, baseMs, random, maxWaitMs);
       const wait = parseRetryAfterMs(response.headers.get("retry-after"), fallback, now(), maxWaitMs);
-      if (isLast || now() - started + wait >= maxTotalMs) {
+      if (isLast || cancelled() || wait >= remaining()) {
         return response;
       }
       await sleep(wait);
     } catch (error) {
       lastError = error;
       const isLast = attempt >= maxAttempts - 1;
-      if (!isRetryableNetworkError(error) || isLast) {
+      if (signal?.aborted || !isRetryableNetworkError(error) || isLast) {
         throw error;
       }
       const wait = backoffWithJitter(attempt, baseMs, random, maxWaitMs);
-      if (now() - started + wait >= maxTotalMs) {
+      if (cancelled() || wait >= remaining()) {
         throw error;
       }
       await sleep(wait);

@@ -4,15 +4,27 @@ export async function fetchWithTimeout(
   timeoutMs: number,
   dispatcher?: unknown,
   fetchImpl: typeof fetch = fetch,
+  externalSignal?: AbortSignal,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), Math.max(0, timeoutMs));
+  const onAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timer);
+      const error = new Error("This operation was aborted");
+      error.name = "AbortError";
+      throw error;
+    }
+    externalSignal.addEventListener("abort", onAbort);
+  }
   try {
     const options: RequestInit & { dispatcher?: unknown } = { ...init, signal: controller.signal };
     if (dispatcher) options.dispatcher = dispatcher;
     return await fetchImpl(url, options);
   } finally {
     clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", onAbort);
   }
 }
 

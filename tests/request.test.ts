@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clientIp } from "@/lib/request";
+import { clientIp, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
 
 function request(headers: Record<string, string>): Request {
   return new Request("http://127.0.0.1/api/scans", { headers });
@@ -26,5 +26,15 @@ describe("clientIp", () => {
   it("falls back to x-real-ip or local", () => {
     expect(clientIp(request({ "x-real-ip": "192.0.2.9" }))).toBe("192.0.2.9");
     expect(clientIp(request({}))).toBe("local");
+  });
+});
+
+describe("unfinished rate-limit refunds", () => {
+  it("refunds only while the unfinished retry count is within the cap", () => {
+    expect(unfinishedRateKey("abc")).toBe("abc:unfinished");
+    expect(shouldRefundUnfinishedAttempt(0, 5)).toBe(false);
+    expect(shouldRefundUnfinishedAttempt(1, 5)).toBe(true);
+    expect(shouldRefundUnfinishedAttempt(5, 5)).toBe(true);
+    expect(shouldRefundUnfinishedAttempt(6, 5)).toBe(false);
   });
 });

@@ -52,6 +52,7 @@ export function presentScan(scan: ScanRecord): PublicScan {
   const unlocked = scan.tier !== "free";
   const findings = complete ? scan.payload.findings : [];
   const answers = scan.payload.answers;
+  const score = complete ? (scan.score ?? 0) : null;
   return {
     id: scan.id,
     businessName: scan.businessName,
@@ -62,9 +63,9 @@ export function presentScan(scan: ScanRecord): PublicScan {
     createdAt: scan.createdAt,
     mode: scan.mode,
     complete,
-    score: complete ? scan.score : null,
-    label: complete ? scoreLabel(scan.score) : "",
-    hint: complete ? scoreHint(scan.score) : "",
+    score,
+    label: score == null ? "" : scoreLabel(score),
+    hint: score == null ? "" : scoreHint(score),
     summary: complete
       ? summarySentence(scan.payload.mentionCount, scan.payload.answerCount, scan.businessName)
       : UNFINISHED_SCAN_MESSAGE,
