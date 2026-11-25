@@ -81,6 +81,7 @@ function sampleScan(): PublicScan {
     websiteUrl: null,
     createdAt: "2026-11-25T16:30:00.000Z",
     mode: "live",
+    complete: true,
     score: 30,
     label: "Rarely named",
     hint: "Customers who ask AI will usually see another business first.",
@@ -123,6 +124,26 @@ describe("public brand", () => {
     const text = pdfText(await renderReportPdf(sampleScan()));
     expectPublicBrand(text);
     expect(text).toContain("Get it fixed by Two Forks Studio");
+  });
+
+  it("keeps Two Forks Studio on an unfinished PDF and does not print 0/100", async () => {
+    const scan = {
+      ...sampleScan(),
+      complete: false,
+      score: null,
+      label: "",
+      hint: "",
+      summary: "The check didn't finish. Please try again in a few minutes.",
+      mentionCount: 1,
+      answerCount: 1,
+      liveAnswerCount: 1,
+    };
+    const text = pdfText(await renderReportPdf(scan));
+    expectPublicBrand(text);
+    expect(text).toContain("Get it fixed by Two Forks Studio");
+    expect(text).toContain("The check didn't finish");
+    expect(text).not.toMatch(/0\s*\/\s*100/);
+    expect(text).not.toMatch(/\d+\s*\/\s*100/);
   });
 
   it("renders Two Forks Studio in the header and footer", () => {
