@@ -52,7 +52,9 @@ const SCHEMA = [
     subject TEXT NOT NULL,
     body TEXT NOT NULL,
     scan_id TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'stored',
+    error TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS rate_limits (
     ip_hash TEXT NOT NULL,
@@ -235,6 +237,30 @@ class Store {
     );
   }
 
+  async markEmail(id: string, status: "sent" | "failed", error: string | null): Promise<void> {
+    await this.sql.run(`UPDATE emails SET status = ?, error = ? WHERE id = ?`, [status, error, id]);
+  }
+
+  async getEmail(id: string): Promise<{
+    id: string;
+    to: string;
+    subject: string;
+    body: string;
+    status: string;
+    error: string | null;
+  } | null> {
+    const row = await this.sql.get(`SELECT * FROM emails WHERE id = ?`, [id]);
+    if (!row) return null;
+    return {
+      id: text(row.id),
+      to: text(row.to_address),
+      subject: text(row.subject),
+      body: text(row.body),
+      status: text(row.status) || "stored",
+      error: row.error == null || row.error === "" ? null : String(row.error),
+    };
+  }
+
   async ping(): Promise<boolean> {
     try {
       await this.sql.get("SELECT 1 AS ok");
@@ -314,6 +340,17 @@ class PostgresSql implements Sql {
 async function initSql(sql: Sql) {
   for (const statement of SCHEMA) {
     await sql.run(statement);
+  }
+  // Older databases were created before status/error existed.
+  for (const statement of [
+    `ALTER TABLE emails ADD COLUMN status TEXT NOT NULL DEFAULT 'stored'`,
+    `ALTER TABLE emails ADD COLUMN error TEXT`,
+  ]) {
+    try {
+      await sql.run(statement);
+    } catch {
+      // The column is already there.
+    }
   }
 }
 

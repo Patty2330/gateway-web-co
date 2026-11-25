@@ -30,7 +30,13 @@ npm test
 | `/check` | The free AI visibility check |
 | `/scans/...` | The score, the top 3 fixes, and the locked or unlocked report |
 
-The quote form and the "get it fixed" form on a report both save a lead in the database. Nothing is emailed until you connect a mail provider. See `src/lib/email.ts`.
+The quote form and the "get it fixed" form on a report both save a lead in the database. Set `LEADS_NOTIFY_EMAIL` if you also want a copy of each note. That copy, and the monthly watch email, go through the outbox in `src/lib/email.ts`.
+
+## Email
+
+Leave `RESEND_API_KEY` or `EMAIL_FROM` blank and messages stay in the database. Nothing is sent. Set both and the app sends them with Resend, then marks each row sent or failed. A failed send is saved on the row and does not stop the check or the lead form.
+
+The from-address domain has to be verified in Resend. Until then, use `onboarding@resend.dev` (for example `Gateway Web Co <onboarding@resend.dev>`). The GitHub Pages demo has no API routes, so it never sends mail.
 
 ## GitHub Pages demo
 
