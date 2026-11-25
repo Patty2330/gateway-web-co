@@ -39,7 +39,8 @@ Tests cover how answers are read, how the score is calculated, and that the webs
 
 - Never push to main.
 - Always open a pull request.
-- Never merge your own pull request. Jalen reviews and merges.
+- Work goes on a branch and PR, never a direct push to main. Code Reviewer must give a PASS with proof, then Web Chief merges (Jalen confirmed Nov 25, 2026).
+- Never merge your own pull request.
 - Never commit secrets. That includes `.env`, `.env.local`, API keys, and Stripe keys. `.env.example` lists the names only.
 
 ## Demo mode
@@ -48,6 +49,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 
 ## Lessons / corrections
 
+- Work goes on a branch and PR, never a direct push to main. Code Reviewer must give a PASS with proof, then Web Chief merges (Jalen confirmed Nov 25, 2026).
 - Public brand name is Two Forks Studio (Nov 25, 2026); keep internal repo/service names unchanged.
 - (Nov 25, 2026, from Jalen) No agent may call work done. Every branch or PR goes to Code Reviewer, which builds and tests it, checks it in a real browser, and gives a PASS with proof (commands, output, screenshots). Web Chief merges or shows Jalen only after that PASS.
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
