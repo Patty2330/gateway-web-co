@@ -433,10 +433,35 @@ export function pgSslConfig(
   const needsSsl =
     mode === "require" || mode === "no-verify" || /render\.com|sslmode=require/i.test(databaseUrl);
   if (!needsSsl) return undefined;
+  const noVerifyFlag = (env.PGSSL_NO_VERIFY || "").trim().toLowerCase();
   const noVerify =
-    env.PGSSL_NO_VERIFY === "1" || mode === "no-verify" || isRenderInternalHost(databaseUrl);
+    noVerifyFlag === "1" ||
+    noVerifyFlag === "true" ||
+    mode === "no-verify" ||
+    isRenderInternalHost(databaseUrl);
   return { rejectUnauthorized: !noVerify };
 }
+
+const URL_SSL_PARAMS = ["sslmode", "sslrootcert", "sslcert", "sslkey", "uselibpqcompat"];
+
+/**
+ * pg lets ssl params in the URL replace the ssl object, which would turn certificate
+ * checks back on for Render's self-signed internal hosts. Drop them for internal hosts only.
+ */
+export function pgConnectionString(databaseUrl: string): string {
+  if (!isRenderInternalHost(databaseUrl)) return databaseUrl;
+  try {
+    const url = new URL(databaseUrl);
+    if (!URL_SSL_PARAMS.some((key) => url.searchParams.has(key))) return databaseUrl;
+    for (const key of URL_SSL_PARAMS) url.searchParams.delete(key);
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
+}
+
+/** Default Postgres connect timeout. A bad database fails fast instead of hanging /api/health. */
+export const PG_CONNECT_TIMEOUT_MS = 10_000;
 
 /** A short, secret-free description of a database error for logs. Never includes the URL. */
 export function describeDbError(error: unknown): string {
@@ -450,6 +475,8 @@ export function describeDbError(error: unknown): string {
 export async function createStore(options?: {
   databaseUrl?: string | null;
   sqlitePath?: string;
+  /** Tests only: shorter Postgres connect timeout. Production uses PG_CONNECT_TIMEOUT_MS. */
+  connectTimeoutMs?: number;
 }): Promise<Store> {
   logMissingDatabaseUrl();
   const databaseUrl =
@@ -458,10 +485,10 @@ export async function createStore(options?: {
   if (databaseUrl && /^postgres(ql)?:/i.test(databaseUrl)) {
     const pg = await import("pg");
     const pool = new pg.Pool({
-      connectionString: databaseUrl,
+      connectionString: pgConnectionString(databaseUrl),
       max: 5,
       // Fail fast instead of hanging the health check when the database is unreachable.
-      connectionTimeoutMillis: 10_000,
+      connectionTimeoutMillis: options?.connectTimeoutMs ?? PG_CONNECT_TIMEOUT_MS,
       idleTimeoutMillis: 30_000,
       ssl: pgSslConfig(databaseUrl),
     });
