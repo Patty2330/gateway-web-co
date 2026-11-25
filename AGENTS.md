@@ -64,6 +64,10 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 - Count IPv6 rate limits by the /64 prefix, and treat IPv4-mapped addresses (::ffff:1.2.3.4) as IPv4, so rotating the interface id cannot bypass the daily cap. (Web Tester, PR #7 follow-up, Nov 25 2026).
 - Unfinished report PDF tests must reject "null / 100" and "null/100", not only 0/100. (Code Reviewer, PR #6/#7 follow-up, Nov 25 2026).
 - Log only a short rate-limit bucket hash prefix on each scan request. Never log the raw client IP or RATE_LIMIT_SALT. (Web Chief, PR #7 follow-up, Nov 25 2026).
+- When parsing IPv6 with an embedded IPv4 tail, keep the "::" compression marker. Addresses such as 64:ff9b::1.2.3.4 and ::1.2.3.4 must still group by /64. (Web Tester / Code Reviewer, PR #7 nits, Nov 25 2026).
+- On Render, if CF-Connecting-IP is missing and the app falls back to the shared local bucket, log one warning with no IP in it, and throttle it if it repeats. (Code Reviewer, PR #7 nits, Nov 25 2026).
+- Setting TRUST_CF_CONNECTING_IP=false on Render puts every visitor into one shared daily count. Say so in .env.example. (Code Reviewer, PR #7 nits, Nov 25 2026).
+- Do not show the name Jalen in visitor-facing leads rate-limit messages. Use neutral wording such as "us" or Two Forks Studio. The footer email stays gatewaywebco@gmail.com until Jalen decides. (Code Reviewer, PR #7 nits, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -7,9 +7,15 @@ import {
   clientIp,
   dailyLimitReachedMessage,
   hashIp,
+  leadsDailyLimitReachedMessage,
+  logMissingCfConnectingIp,
   logScanRateLimitKey,
+  MISSING_CF_CONNECTING_IP_WARNING,
+  MISSING_CF_WARNING_INTERVAL_MS,
   normalizeRateLimitIp,
+  parseIpv6Hextets,
   rateLimitDay,
+  resetMissingCfConnectingIpWarning,
   runningOnRender,
   scanRateLimitLogLine,
   shouldRefundUnfinishedAttempt,
@@ -39,6 +45,7 @@ afterEach(() => {
   else process.env.TRUST_CF_CONNECTING_IP = previousTrust;
   if (previousRender == null) delete process.env.RENDER;
   else process.env.RENDER = previousRender;
+  resetMissingCfConnectingIpWarning();
 });
 
 describe("clientIp", () => {
@@ -166,6 +173,40 @@ describe("IPv6 rate-limit buckets", () => {
     expect(normalizeRateLimitIp("[::ffff:1.2.3.4]")).toBe("1.2.3.4");
     expect(normalizeRateLimitIp("::ffff:0102:0304")).toBe("1.2.3.4");
   });
+
+  it("groups embedded-IPv4 addresses after '::' by /64, including 64:ff9b::1.2.3.4 and ::1.2.3.4", () => {
+    expect(parseIpv6Hextets("64:ff9b::1.2.3.4")).toEqual([
+      0x64, 0xff9b, 0, 0, 0, 0, 0x0102, 0x0304,
+    ]);
+    expect(parseIpv6Hextets("::1.2.3.4")).toEqual([0, 0, 0, 0, 0, 0, 0x0102, 0x0304]);
+
+    const nat64 = normalizeRateLimitIp("64:ff9b::1.2.3.4");
+    expect(nat64).toMatch(/\/64$/);
+    expect(nat64).toBe(normalizeRateLimitIp("64:ff9b::5.6.7.8"));
+    expect(nat64).toBe(normalizeRateLimitIp("[64:ff9b::1.2.3.4]"));
+    expect(nat64).toBe(normalizeRateLimitIp("64:ff9b::1.2.3.4%eth0"));
+    expect(nat64).toBe(normalizeRateLimitIp("64:FF9B::1.2.3.4"));
+    expect(hashIp("64:ff9b::1.2.3.4")).toBe(hashIp("64:ff9b::5.6.7.8"));
+    expect(normalizeRateLimitIp("64:ff9b:0:1::1.2.3.4")).not.toBe(nat64);
+
+    const compact = normalizeRateLimitIp("::1.2.3.4");
+    expect(compact).toMatch(/\/64$/);
+    expect(compact).toBe(normalizeRateLimitIp("::5.6.7.8"));
+    expect(compact).toBe(normalizeRateLimitIp("[::1.2.3.4]"));
+    expect(compact).toBe(normalizeRateLimitIp("::1.2.3.4%eth0"));
+    expect(compact).toBe(normalizeRateLimitIp("::1.2.3.4"));
+    expect(hashIp("::1.2.3.4")).toBe(hashIp("::5.6.7.8"));
+
+    // Existing cases still hold: ::ffff maps to IPv4; brackets, zone ids, and case do not change the bucket.
+    expect(normalizeRateLimitIp("::ffff:1.2.3.4")).toBe("1.2.3.4");
+    expect(normalizeRateLimitIp("::FFFF:1.2.3.4")).toBe("1.2.3.4");
+    expect(normalizeRateLimitIp("[::ffff:1.2.3.4]")).toBe("1.2.3.4");
+    expect(normalizeRateLimitIp("::ffff:1.2.3.4%eth0")).toBe("1.2.3.4");
+    const prefix = normalizeRateLimitIp("2001:db8::1");
+    expect(prefix).toBe(normalizeRateLimitIp("[2001:db8::1]"));
+    expect(prefix).toBe(normalizeRateLimitIp("2001:db8::1%eth0"));
+    expect(prefix).toBe(normalizeRateLimitIp("2001:DB8::1"));
+  });
 });
 
 describe("scan rate-limit log", () => {
@@ -202,7 +243,82 @@ describe("TRUST_CF_CONNECTING_IP docs", () => {
     }
     expect(env).toMatch(/RENDER=true/);
     expect(env).toMatch(/403/);
+    expect(env).toMatch(/TRUST_CF_CONNECTING_IP=false/);
+    expect(env).toMatch(/shared daily count/);
     expect(agents).toMatch(/real host's docs or a live echo/);
     expect(render).toMatch(/TRUST_CF_CONNECTING_IP[\s\S]*value: "true"/);
+  });
+});
+
+describe("missing CF-Connecting-IP warning", () => {
+  it("logs one throttled warning with no IP when Render falls back to the shared local bucket", () => {
+    useRenderEnv();
+    const spoofed = "198.51.100.1";
+    const lines: string[] = [];
+    const write = (line: string) => lines.push(line);
+
+    expect(clientIp(request({ "x-forwarded-for": spoofed, "x-real-ip": "192.0.2.9" }))).toBe("local");
+    expect(clientIp(request({ "cf-connecting-ip": "not-an-ip" }))).toBe("local");
+
+    resetMissingCfConnectingIpWarning();
+    expect(logMissingCfConnectingIp(write, 1_000)).toBe(true);
+    expect(logMissingCfConnectingIp(write, 1_000 + 1_000)).toBe(false);
+    expect(logMissingCfConnectingIp(write, 1_000 + MISSING_CF_WARNING_INTERVAL_MS)).toBe(true);
+    expect(lines).toEqual([
+      MISSING_CF_CONNECTING_IP_WARNING,
+      MISSING_CF_CONNECTING_IP_WARNING,
+    ]);
+    expect(MISSING_CF_CONNECTING_IP_WARNING).toMatch(/shared local/);
+    expect(MISSING_CF_CONNECTING_IP_WARNING).not.toMatch(/\d{1,3}(?:\.\d{1,3}){3}/);
+    for (const line of lines) {
+      expect(line).not.toContain(spoofed);
+      expect(line).not.toContain("192.0.2.9");
+      expect(line).toBe(MISSING_CF_CONNECTING_IP_WARNING);
+    }
+
+    const warnings: string[] = [];
+    const spy = {
+      warn: console.warn,
+    };
+    console.warn = ((message?: unknown, ...rest: unknown[]) => {
+      warnings.push([message, ...rest].map(String).join(" "));
+    }) as typeof console.warn;
+    try {
+      resetMissingCfConnectingIpWarning();
+      expect(clientIp(request({ "x-forwarded-for": spoofed }))).toBe("local");
+      expect(clientIp(request({ "x-forwarded-for": "203.0.113.8" }))).toBe("local");
+      expect(warnings).toEqual([MISSING_CF_CONNECTING_IP_WARNING]);
+      expect(warnings[0]).not.toContain(spoofed);
+      expect(warnings[0]).not.toContain("203.0.113.8");
+      expect(clientIp(request({ "cf-connecting-ip": "203.0.113.7" }))).toBe("203.0.113.7");
+      expect(warnings).toHaveLength(1);
+    } finally {
+      console.warn = spy.warn;
+    }
+  });
+
+  it("does not warn off Render when CF-Connecting-IP is missing", () => {
+    useLocalEnv();
+    const warnings: string[] = [];
+    const original = console.warn;
+    console.warn = ((message?: unknown, ...rest: unknown[]) => {
+      warnings.push([message, ...rest].map(String).join(" "));
+    }) as typeof console.warn;
+    try {
+      expect(clientIp(request({}))).toBe("local");
+      expect(warnings).toEqual([]);
+    } finally {
+      console.warn = original;
+    }
+  });
+});
+
+describe("leadsDailyLimitReachedMessage", () => {
+  it("uses neutral wording and does not name Jalen", () => {
+    const message = leadsDailyLimitReachedMessage();
+    expect(message).toMatch(/enough notes for today/i);
+    expect(message).toMatch(/Two Forks Studio|\bus\b/i);
+    expect(message).not.toMatch(/Jalen/);
+    expect(message).not.toContain("gatewaywebco@gmail.com");
   });
 });

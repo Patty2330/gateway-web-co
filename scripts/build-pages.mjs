@@ -10,6 +10,7 @@ const moves = [
   // These tests import API route modules that are hidden for the static export.
   [path.join(root, "tests/checkout-route.test.ts"), path.join(hideRoot, "checkout-route.test.ts")],
   [path.join(root, "tests/scans-route.test.ts"), path.join(hideRoot, "scans-route.test.ts")],
+  [path.join(root, "tests/leads-route.test.ts"), path.join(hideRoot, "leads-route.test.ts")],
   [path.join(root, "tests/cron.test.ts"), path.join(hideRoot, "cron.test.ts")],
 ];
 
