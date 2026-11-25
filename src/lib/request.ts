@@ -293,7 +293,7 @@ export function dailyLimitReachedMessage(limit = dailyLimit()): string {
 }
 
 export function leadsDailyLimitReachedMessage(): string {
-  return "That's enough notes for today. Two Forks Studio will see the ones you already sent.";
+  return "That's enough notes for today. Jalen at Two Forks Studio will see the ones you already sent.";
 }
 
 /** How many unfinished attempts can be refunded toward the daily cap. */

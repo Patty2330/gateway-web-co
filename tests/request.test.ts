@@ -314,11 +314,11 @@ describe("missing CF-Connecting-IP warning", () => {
 });
 
 describe("leadsDailyLimitReachedMessage", () => {
-  it("uses neutral wording and does not name Jalen", () => {
+  it("uses the approved wording", () => {
     const message = leadsDailyLimitReachedMessage();
-    expect(message).toMatch(/enough notes for today/i);
-    expect(message).toMatch(/Two Forks Studio|\bus\b/i);
-    expect(message).not.toMatch(/Jalen/);
+    expect(message).toBe(
+      "That's enough notes for today. Jalen at Two Forks Studio will see the ones you already sent.",
+    );
     expect(message).not.toContain("gatewaywebco@gmail.com");
   });
 });

@@ -31,7 +31,7 @@ describe("POST /api/leads", () => {
     vi.resetModules();
   });
 
-  it("returns a neutral 429 message that does not name Jalen", async () => {
+  it("returns the approved 429 message", async () => {
     const key = `${hashIp("local")}:lead`;
     const day = rateLimitDay();
     for (let index = 0; index < 10; index++) {
@@ -42,8 +42,9 @@ describe("POST /api/leads", () => {
     expect(blocked.status).toBe(429);
     const body = await blocked.json();
     expect(body).toEqual({ error: leadsDailyLimitReachedMessage() });
-    expect(body.error).not.toMatch(/Jalen/);
-    expect(body.error).toMatch(/Two Forks Studio|us/i);
+    expect(body.error).toBe(
+      "That's enough notes for today. Jalen at Two Forks Studio will see the ones you already sent.",
+    );
     expect(JSON.stringify(body)).not.toContain("gatewaywebco@gmail.com");
   });
 });

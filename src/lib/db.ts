@@ -408,9 +408,75 @@ function sqliteFile(databaseUrl?: string | null): string {
   return path.join(process.cwd(), "data", "visibility.db");
 }
 
+const PGSSL_OFF = new Set(["0", "off", "false", "disable", "no"]);
+
+/** True for a Render internal Postgres host such as dpg-abc123-a (private network, self-signed TLS). */
+export function isRenderInternalHost(databaseUrl: string): boolean {
+  try {
+    const host = new URL(databaseUrl).hostname;
+    return /^dpg-[a-z0-9]+-[a-z]$/i.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * TLS options for pg. Render internal URLs use self-signed certificates, so TLS stays on
+ * (when PGSSL=require) but certificate verification is off for them. External hosts verify.
+ */
+export function pgSslConfig(
+  databaseUrl: string,
+  env: Partial<Record<string, string | undefined>> = process.env,
+): { rejectUnauthorized: boolean } | undefined {
+  const mode = (env.PGSSL || "").trim().toLowerCase();
+  if (PGSSL_OFF.has(mode)) return undefined;
+  const needsSsl =
+    mode === "require" || mode === "no-verify" || /render\.com|sslmode=require/i.test(databaseUrl);
+  if (!needsSsl) return undefined;
+  const noVerifyFlag = (env.PGSSL_NO_VERIFY || "").trim().toLowerCase();
+  const noVerify =
+    noVerifyFlag === "1" ||
+    noVerifyFlag === "true" ||
+    mode === "no-verify" ||
+    isRenderInternalHost(databaseUrl);
+  return { rejectUnauthorized: !noVerify };
+}
+
+const URL_SSL_PARAMS = ["sslmode", "sslrootcert", "sslcert", "sslkey", "uselibpqcompat"];
+
+/**
+ * pg lets ssl params in the URL replace the ssl object, which would turn certificate
+ * checks back on for Render's self-signed internal hosts. Drop them for internal hosts only.
+ */
+export function pgConnectionString(databaseUrl: string): string {
+  if (!isRenderInternalHost(databaseUrl)) return databaseUrl;
+  try {
+    const url = new URL(databaseUrl);
+    if (!URL_SSL_PARAMS.some((key) => url.searchParams.has(key))) return databaseUrl;
+    for (const key of URL_SSL_PARAMS) url.searchParams.delete(key);
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
+}
+
+/** Default Postgres connect timeout. A bad database fails fast instead of hanging /api/health. */
+export const PG_CONNECT_TIMEOUT_MS = 10_000;
+
+/** A short, secret-free description of a database error for logs. Never includes the URL. */
+export function describeDbError(error: unknown): string {
+  const err = error as { code?: unknown; message?: unknown } | null;
+  const code = err && typeof err.code === "string" ? err.code : "";
+  let message = err && typeof err.message === "string" ? err.message : String(error);
+  message = message.replace(/postgres(ql)?:\/\/\S+/gi, "[database url]").slice(0, 200);
+  return code ? `${code}: ${message}` : message;
+}
+
 export async function createStore(options?: {
   databaseUrl?: string | null;
   sqlitePath?: string;
+  /** Tests only: shorter Postgres connect timeout. Production uses PG_CONNECT_TIMEOUT_MS. */
+  connectTimeoutMs?: number;
 }): Promise<Store> {
   logMissingDatabaseUrl();
   const databaseUrl =
@@ -418,14 +484,15 @@ export async function createStore(options?: {
 
   if (databaseUrl && /^postgres(ql)?:/i.test(databaseUrl)) {
     const pg = await import("pg");
-    const needsSsl =
-      process.env.PGSSL === "require" || /render\.com|sslmode=require/i.test(databaseUrl);
-    const verifyTls = process.env.PGSSL_NO_VERIFY !== "1";
     const pool = new pg.Pool({
-      connectionString: databaseUrl,
+      connectionString: pgConnectionString(databaseUrl),
       max: 5,
-      ssl: needsSsl ? { rejectUnauthorized: verifyTls } : undefined,
+      // Fail fast instead of hanging the health check when the database is unreachable.
+      connectionTimeoutMillis: options?.connectTimeoutMs ?? PG_CONNECT_TIMEOUT_MS,
+      idleTimeoutMillis: 30_000,
+      ssl: pgSslConfig(databaseUrl),
     });
+    pool.on("error", (error) => console.error(`Postgres pool error: ${describeDbError(error)}`));
 
     const sql = new PostgresSql(pool);
     await initSql(sql);
@@ -448,9 +515,23 @@ export async function createStore(options?: {
 
 const globalStore = globalThis as unknown as { __visibilityStore?: Promise<Store> };
 
-export function getStore(): Promise<Store> {
+/** Cache one store per process, but drop a failed attempt so the next call retries. */
+export function cachedStore(factory: () => Promise<Store> = createStore): Promise<Store> {
   if (!globalStore.__visibilityStore) {
-    globalStore.__visibilityStore = createStore();
+    const attempt = factory();
+    globalStore.__visibilityStore = attempt;
+    attempt.catch((error) => {
+      if (globalStore.__visibilityStore === attempt) globalStore.__visibilityStore = undefined;
+      console.error(`Database connection failed: ${describeDbError(error)}`);
+    });
   }
   return globalStore.__visibilityStore;
+}
+
+export function resetStoreCacheForTests(): void {
+  globalStore.__visibilityStore = undefined;
+}
+
+export function getStore(): Promise<Store> {
+  return cachedStore();
 }

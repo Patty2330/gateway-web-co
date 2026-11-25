@@ -67,7 +67,8 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 - When parsing IPv6 with an embedded IPv4 tail, keep the "::" compression marker. Addresses such as 64:ff9b::1.2.3.4 and ::1.2.3.4 must still group by /64. (Web Tester / Code Reviewer, PR #7 nits, Nov 25 2026).
 - On Render, if CF-Connecting-IP is missing and the app falls back to the shared local bucket, log one warning with no IP in it, and throttle it if it repeats. (Code Reviewer, PR #7 nits, Nov 25 2026).
 - Setting TRUST_CF_CONNECTING_IP=false on Render puts every visitor into one shared daily count. Say so in .env.example. (Code Reviewer, PR #7 nits, Nov 25 2026).
-- Do not show the name Jalen in visitor-facing leads rate-limit messages. Use neutral wording such as "us" or Two Forks Studio. The footer email stays gatewaywebco@gmail.com until Jalen decides. (Code Reviewer, PR #7 nits, Nov 25 2026).
+- The leads rate-limit (429) message reads exactly: "That's enough notes for today. Jalen at Two Forks Studio will see the ones you already sent." This replaces the earlier no-Jalen wording. Keep the button text "Send a note to Jalen". The footer email stays gatewaywebco@gmail.com until Jalen decides. (Web Chief, Nov 25 2026; replaces Code Reviewer PR #7 nit).
+- Render internal Postgres URLs (dpg-xxxx-a) use self-signed TLS. With PGSSL=require, do not verify the certificate for them (rejectUnauthorized false, or PGSSL_NO_VERIFY=1), or every connection fails, /api/health returns 503, and the deploy never goes live. Give the pg pool a connect timeout, never cache a failed store connection, and log the error code without the URL. (Web Chief, DATABASE_URL deploy, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
