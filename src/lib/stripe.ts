@@ -23,7 +23,6 @@ export async function createCheckoutSession(input: {
     const url = new URL("/checkout/demo", input.appUrl);
     url.searchParams.set("scan", input.scanId);
     url.searchParams.set("plan", input.plan);
-    url.searchParams.set("email", input.email);
     return url.toString();
   }
 
@@ -81,8 +80,9 @@ export async function confirmCheckoutSession(
   if (!stripe) return null;
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   if (session.metadata?.scanId !== scanId) return null;
-  const paid = session.payment_status === "paid" || session.status === "complete";
-  if (!paid) return null;
+  // One-time payments and subscriptions both report payment_status "paid"
+  // after a successful charge. Do not treat a merely "complete" session as paid.
+  if (session.payment_status !== "paid") return null;
   const plan: Plan = session.metadata?.plan === "monitor" ? "monitor" : "report";
   const email = session.customer_details?.email || session.metadata?.email || null;
   const subscription = session.subscription;

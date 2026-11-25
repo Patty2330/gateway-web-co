@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyPurchase } from "@/lib/purchase";
+import { applyPurchase, dropMonitor } from "@/lib/purchase";
 import { aggregateCompetitors, pointsFor, scoreLabel, visibilityScore } from "@/lib/score";
 
 describe("scoring", () => {
@@ -62,5 +62,11 @@ describe("purchases", () => {
     expect(applyPurchase("free", "monitor")).toBe("monitor");
     expect(applyPurchase("report", "monitor")).toBe("monitor");
     expect(applyPurchase("monitor", "report")).toBe("monitor");
+  });
+
+  it("downgrades a canceled monthly watch to a one-time report", () => {
+    expect(dropMonitor("monitor")).toBe("report");
+    expect(dropMonitor("report")).toBe("report");
+    expect(dropMonitor("free")).toBe("free");
   });
 });

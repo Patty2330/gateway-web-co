@@ -73,5 +73,21 @@ describe("store", () => {
     const second = await store.consumeRateLimit("ip-1", "2026-11-25");
     expect(first).toBe(1);
     expect(second).toBe(2);
+    expect(await store.ping()).toBe(true);
+  });
+
+  it("stops monthly re-checks when a subscription is canceled", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(
+      scan("watch", {
+        tier: "monitor",
+        stripeSubscriptionId: "sub_123",
+        nextRunAt: "2026-12-25T12:00:00.000Z",
+      }),
+    );
+    const updated = await store.clearMonitor("sub_123");
+    expect(updated?.tier).toBe("report");
+    expect(updated?.stripeSubscriptionId).toBeNull();
+    expect(updated?.nextRunAt).toBeNull();
   });
 });

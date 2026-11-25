@@ -30,7 +30,7 @@ export function ResultsView({
   cancelNotice,
 }: {
   scan: PublicScan;
-  paidNotice: boolean;
+  paidNotice: false | "practice" | "paid";
   cancelNotice: boolean;
 }) {
   const sampleOnly = scan.mode === "demo";
@@ -54,7 +54,12 @@ export function ResultsView({
           score on this page is from the sample, not from a live answer.
         </div>
       ) : null}
-      {paidNotice ? (
+      {paidNotice === "practice" ? (
+        <div className="mt-5 rounded-xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
+          Practice payment recorded, no charge.
+        </div>
+      ) : null}
+      {paidNotice === "paid" ? (
         <div className="mt-5 rounded-xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
           Payment received. The full report is unlocked on this page.
         </div>
@@ -123,7 +128,14 @@ export function ResultsView({
       {scan.unlocked ? (
         <section className="mt-10 grid gap-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="font-serif text-3xl">Full report</h2>
+            <div>
+              <h2 className="font-serif text-3xl">Full report</h2>
+              {scan.mode === "demo" ? (
+                <p className="mt-2 text-sm font-medium text-primary">
+                  Sample report. These answers are stand-ins, not live Perplexity results.
+                </p>
+              ) : null}
+            </div>
             {isPagesDemo() ? (
               <DownloadSummaryButton scan={scan} />
             ) : (
@@ -273,7 +285,7 @@ export function ResultsView({
                   Locked until you buy the report
                 </p>
               </div>
-              <UnlockPanel scanId={scan.id} email={scan.email} tier={scan.tier} />
+              <UnlockPanel scanId={scan.id} tier={scan.tier} />
               <p className="text-xs leading-5 text-muted-foreground">
                 $49 is a one-time report. $19 a month re-runs this check and emails what changed.
                 Without a Stripe key, checkout is a clearly labeled practice payment.
@@ -293,7 +305,7 @@ export function ResultsView({
               <p className="mb-4 text-sm leading-6">
                 $19 a month runs the same questions again and emails you when the score moves.
               </p>
-              <UnlockPanel scanId={scan.id} email={scan.email} tier={scan.tier} />
+              <UnlockPanel scanId={scan.id} tier={scan.tier} />
             </CardContent>
           </Card>
         </section>

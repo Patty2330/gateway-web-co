@@ -18,7 +18,6 @@ export type PublicScan = {
   answerCount: number;
   tier: ScanRecord["tier"];
   unlocked: boolean;
-  email: string | null;
   nextRunAt: string | null;
   providers: ScanRecord["payload"]["providers"];
   topFindings: Finding[];
@@ -58,7 +57,6 @@ export function presentScan(scan: ScanRecord): PublicScan {
     answerCount: scan.payload.answerCount,
     tier: scan.tier,
     unlocked,
-    email: scan.email,
     nextRunAt: scan.nextRunAt,
     providers: scan.payload.providers,
     topFindings: findings.slice(0, 3),

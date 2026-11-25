@@ -39,4 +39,24 @@ describe("website parsing", () => {
     expect(isPrivateAddress("::ffff:169.254.169.254")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
   });
+
+  it("treats hex IPv4-mapped and NAT64 forms as private when the v4 address is private", () => {
+    expect(isPrivateAddress("::ffff:7f00:1")).toBe(true);
+    expect(isPrivateAddress("[::ffff:7f00:1]")).toBe(true);
+    expect(isPrivateAddress("::ffff:a9fe:a9fe")).toBe(true);
+    expect(isPrivateAddress("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateAddress("64:ff9b::7f00:1")).toBe(true);
+    expect(isPrivateAddress("64:ff9b::127.0.0.1")).toBe(true);
+    expect(isPrivateAddress("::7f00:1")).toBe(true);
+    expect(isPrivateAddress("::ffff:0808:0808")).toBe(false);
+    expect(isPrivateAddress("2001:4860:4860::8888")).toBe(false);
+  });
+
+  it("treats an alley address as a street address", () => {
+    const signals = analyzeHtml(
+      "<html><body><p>103 Strawberry Alley, Clarksville, TN 37040</p></body></html>",
+      "Strawberry Alley Ale Works",
+    );
+    expect(signals.hasAddress).toBe(true);
+  });
 });

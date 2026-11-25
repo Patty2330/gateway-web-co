@@ -44,7 +44,7 @@ function PreviewBody() {
   return (
     <ResultsView
       scan={presentScan(record)}
-      paidNotice={query.get("paid") === "1"}
+      paidNotice={query.get("paid") === "1" ? "practice" : false}
       cancelNotice={false}
     />
   );

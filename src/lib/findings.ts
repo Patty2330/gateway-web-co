@@ -24,7 +24,7 @@ export function buildFindings(input: {
       area: "content",
       title: "Perplexity didn't answer this run",
       why: "The check didn't get an answer back, so the score can't tell you much yet.",
-      fix: "Check PERPLEXITY_API_KEY and run the check again. The free daily limit and the 24-hour cache are there so a retry stays cheap.",
+      fix: "Check the connection to Perplexity and run the check again. The free daily limit and the 24-hour cache are there so a retry stays cheap.",
     });
   }
 
@@ -94,7 +94,7 @@ export function buildFindings(input: {
   if (input.siteCheck && !input.siteCheck.ok) {
     findings.push({
       id: "site-unread",
-      priority: 4,
+      priority: 0,
       area: "website",
       title: "We couldn't read the website",
       why: input.siteCheck.error || "The address didn't return a page we could check.",

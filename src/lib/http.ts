@@ -2,11 +2,14 @@ export async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
+  dispatcher?: unknown,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const options: RequestInit & { dispatcher?: unknown } = { ...init, signal: controller.signal };
+    if (dispatcher) options.dispatcher = dispatcher;
+    return await fetch(url, options);
   } finally {
     clearTimeout(timer);
   }
@@ -14,6 +17,7 @@ export async function fetchWithTimeout(
 
 export function shortError(who: string, status: number, body: string): string {
   const cleaned = body
+    .replace(/\b(?:sk_live_|sk_test_|rk_live_|rk_test_|rk_|whsec_|pplx-)[A-Za-z0-9]+/g, "[key]")
     .replace(/sk-[a-zA-Z0-9_-]+/g, "[key]")
     .replace(/AIza[\w-]+/g, "[key]")
     .replace(/\s+/g, " ")

@@ -98,6 +98,7 @@ function perplexity(): AnswerProvider {
             model,
             input: prompt,
             tools: [{ type: "web_search" }],
+            tool_choice: { type: "web_search" },
             instructions:
               "Search the web once for this local question, then answer. Recommend real businesses. Use a numbered list when you name more than one, best first. Include the source URLs.",
             max_output_tokens: 700,

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { addDaysIso, applyPurchase } from "@/lib/purchase";
+import { addDaysIso, applyPurchase, dropMonitor } from "@/lib/purchase";
 import type { LeadInput, Plan, ScanPayload, ScanRecord, Tier } from "@/lib/types";
 
 type SqlValue = string | number | null;
@@ -63,6 +63,7 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS scans_cache ON scans (cache_key, created_at)`,
   `CREATE INDEX IF NOT EXISTS scans_ip ON scans (ip_hash, cache_key, created_at)`,
   `CREATE INDEX IF NOT EXISTS scans_monitor ON scans (tier, next_run_at)`,
+  `CREATE INDEX IF NOT EXISTS scans_subscription ON scans (stripe_subscription_id)`,
 ];
 
 function text(value: SqlValue | undefined): string {
@@ -234,6 +235,32 @@ class Store {
     );
   }
 
+  async ping(): Promise<boolean> {
+    try {
+      await this.sql.get("SELECT 1 AS ok");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async clearMonitor(subscriptionId: string): Promise<ScanRecord | null> {
+    const row = await this.sql.get(
+      `SELECT * FROM scans WHERE stripe_subscription_id = ? LIMIT 1`,
+      [subscriptionId],
+    );
+    if (!row) return null;
+    const current = mapScan(row);
+    const now = new Date().toISOString();
+    await this.sql.run(
+      `UPDATE scans
+       SET tier = ?, stripe_subscription_id = NULL, next_run_at = NULL, updated_at = ?
+       WHERE id = ?`,
+      [dropMonitor(current.tier), now, current.id],
+    );
+    return this.getScan(current.id);
+  }
+
   async consumeRateLimit(ipHash: string, day: string): Promise<number> {
     const row = await this.sql.get(
       `INSERT INTO rate_limits (ip_hash, day, count) VALUES (?, ?, 1)
@@ -307,11 +334,13 @@ export async function createStore(options?: {
     const pg = await import("pg");
     const needsSsl =
       process.env.PGSSL === "require" || /render\.com|sslmode=require/i.test(databaseUrl);
+    const verifyTls = process.env.PGSSL_NO_VERIFY !== "1";
     const pool = new pg.Pool({
       connectionString: databaseUrl,
       max: 5,
-      ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+      ssl: needsSsl ? { rejectUnauthorized: verifyTls } : undefined,
     });
+
     const sql = new PostgresSql(pool);
     await initSql(sql);
     return new Store(sql);

@@ -45,7 +45,7 @@ const LOCAL_TYPES = new Set([
 
 const PHONE_RE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/;
 const STREET_RE =
-  /\d{1,6}\s+[a-z0-9.'-]+(?:\s+[a-z0-9.'-]+){0,4}\s+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd|way|court|ct|highway|hwy|parkway|pkwy)\b/i;
+  /\d{1,6}\s+[a-z0-9.'-]+(?:\s+[a-z0-9.'-]+){0,4}\s+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|boulevard|blvd|way|court|ct|highway|hwy|parkway|pkwy|alley|aly)\b/i;
 const ZIP_RE = /\b\d{5}(?:-\d{4})?\b/;
 
 export type SiteSignals = Pick<

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { DemoCheckoutForm } from "@/components/demo-checkout-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { loadCheckoutEmail } from "@/lib/checkout-client";
 import { isPagesDemo } from "@/lib/pages";
 import { loadPagesScan } from "@/lib/pages-store";
 
@@ -21,7 +22,7 @@ function CheckoutBody() {
   const query = useSearchParams();
   const scanId = query.get("scan") || "";
   const plan = query.get("plan") === "monitor" ? "monitor" : "report";
-  const email = query.get("email") || "";
+  const [email, setEmail] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [missing, setMissing] = useState(false);
   const [stripeOn, setStripeOn] = useState(false);
@@ -30,16 +31,19 @@ function CheckoutBody() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      const storedEmail = loadCheckoutEmail();
+      if (!cancelled) setEmail(storedEmail);
+
       if (isPagesDemo()) {
         const stored = loadPagesScan();
         if (!cancelled) {
-          if (!stored || !email) setMissing(true);
+          if (!stored || !storedEmail) setMissing(true);
           else setBusinessName(stored.businessName);
           setReady(true);
         }
         return;
       }
-      if (!scanId || !email) {
+      if (!scanId || !storedEmail) {
         if (!cancelled) {
           setMissing(true);
           setReady(true);
@@ -73,7 +77,7 @@ function CheckoutBody() {
     return () => {
       cancelled = true;
     };
-  }, [email, scanId]);
+  }, [scanId]);
 
   if (!ready) return <CheckoutSkeleton />;
 

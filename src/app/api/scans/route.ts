@@ -5,31 +5,17 @@ import { z } from "zod";
 import { getStore } from "@/lib/db";
 import { buildCacheKey, executeScan, scanMode } from "@/lib/engine";
 import { providerSignature } from "@/lib/providers";
-import { cacheHours, clientIp, dailyLimit, hashIp } from "@/lib/request";
+import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, hashIp } from "@/lib/request";
+import { normalizeWebsite } from "@/lib/website-url";
 import type { ScanRecord } from "@/lib/types";
 
 const schema = z.object({
-  businessName: z.string().trim().min(2, "Add the business name.").max(80),
-  category: z.string().trim().min(2, "Add the kind of business.").max(40),
-  city: z.string().trim().min(2, "Add the city.").max(60),
+  businessName: z.string().trim().min(2, "Add the business name.").max(80, "Keep the business name under 80 characters."),
+  category: z.string().trim().min(2, "Add the kind of business.").max(40, "Keep the category under 40 characters."),
+  city: z.string().trim().min(2, "Add the city.").max(60, "Keep the city name under 60 characters."),
   state: z.string().trim().length(2, "Pick a state.").toUpperCase(),
-  websiteUrl: z.string().trim().max(300).optional(),
+  websiteUrl: z.string().trim().max(300, "Keep the website address under 300 characters.").optional(),
 });
-
-function normalizeWebsite(raw: string | undefined): string | null {
-  if (!raw?.trim()) return null;
-  const withProtocol = /^https?:\/\//i.test(raw) ? raw.trim() : `https://${raw.trim()}`;
-  let url: URL;
-  try {
-    url = new URL(withProtocol);
-  } catch {
-    throw new Error("That website address doesn't look right.");
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("The website link needs to start with http or https.");
-  }
-  return url.toString();
-}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -64,7 +50,18 @@ export async function POST(request: Request) {
   };
   const signature = providerSignature();
   const cacheKey = buildCacheKey(input, signature);
-  const ipHash = hashIp(clientIp(request));
+  let ipHash: string;
+  try {
+    ipHash = hashIp(clientIp(request));
+  } catch (error) {
+    if (error instanceof RateLimitConfigError) {
+      return Response.json(
+        { error: "This install isn't ready for new checks. Set RATE_LIMIT_SALT on the server." },
+        { status: 503 },
+      );
+    }
+    throw error;
+  }
   const since = new Date(Date.now() - cacheHours() * 60 * 60 * 1000).toISOString();
   const store = await getStore();
   const own = await store.findRecentByIp(ipHash, cacheKey, since);
