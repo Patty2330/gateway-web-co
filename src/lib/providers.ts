@@ -1,4 +1,5 @@
-import { fetchWithTimeout, shortError } from "@/lib/http";
+import { shortError } from "@/lib/http";
+import { fetchWithRetry } from "@/lib/retry";
 import type { ProviderId, Source } from "@/lib/types";
 
 export type ProviderAnswer = {
@@ -86,7 +87,7 @@ function perplexity(): AnswerProvider {
     configured: () => Boolean(process.env.PERPLEXITY_API_KEY),
     async answer(prompt: string) {
       const model = process.env.PERPLEXITY_MODEL || "perplexity/sonar";
-      const response = await fetchWithTimeout(
+      const response = await fetchWithRetry(
         "https://api.perplexity.ai/v1/agent",
         {
           method: "POST",
@@ -104,7 +105,7 @@ function perplexity(): AnswerProvider {
             max_output_tokens: 700,
           }),
         },
-        28_000,
+        { timeoutMs: 28_000 },
       );
       if (!response.ok) {
         throw new Error(shortError("Perplexity", response.status, await readError(response)));

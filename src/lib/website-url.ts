@@ -1,3 +1,17 @@
+import net from "node:net";
+
+/** Hostnames we accept on a business website field. Junk like "!!!" is rejected. */
+export function isValidHostname(host: string): boolean {
+  const hostname = host.replace(/\.$/, "").toLowerCase();
+  if (!hostname || hostname.length > 253) return false;
+  if (hostname === "localhost") return true;
+  if (net.isIP(hostname) === 4 || net.isIP(hostname) === 6) return true;
+  const labels = hostname.split(".");
+  if (labels.length < 2) return false;
+  const labelRe = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
+  return labels.every((label) => labelRe.test(label));
+}
+
 export function normalizeWebsite(raw: string | undefined): string | null {
   if (!raw?.trim()) return null;
   const trimmed = raw.trim();
@@ -31,7 +45,7 @@ export function normalizeWebsite(raw: string | undefined): string | null {
   if (url.username || url.password) {
     throw new Error("Take the username and password out of the website link.");
   }
-  if (!url.hostname) {
+  if (!url.hostname || !isValidHostname(url.hostname)) {
     throw new Error("That website address doesn't look right.");
   }
   return url.toString();

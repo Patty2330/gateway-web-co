@@ -70,10 +70,26 @@ export function ResultsView({
         </div>
       ) : null}
 
+      {!scan.complete ? (
+        <section className="mt-8">
+          <Card>
+            <CardContent className="grid gap-3">
+              <p className="font-serif text-3xl">The check didn&apos;t finish</p>
+              <p className="max-w-xl text-base leading-7">{scan.summary}</p>
+              <p>
+                <Link href="/check" className="underline underline-offset-4">
+                  Try the check again
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+      ) : (
+        <>
       <section className="mt-8 grid gap-6 lg:grid-cols-[auto_1fr]">
         <Card className="items-center text-center lg:items-start lg:text-left">
           <CardContent className="flex flex-col items-center gap-4 lg:items-start">
-            <ScoreRing score={scan.score} />
+            <ScoreRing score={scan.score ?? 0} />
             <div>
               <p className="font-serif text-2xl">{scan.label}</p>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{scan.hint}</p>
@@ -310,6 +326,9 @@ export function ResultsView({
           </Card>
         </section>
       ) : null}
+
+        </>
+      )}
 
       <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.1fr]" id="fix">
         <div>

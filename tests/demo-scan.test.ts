@@ -17,6 +17,7 @@ describe("pages demo scan", () => {
       true,
     );
     expect(payload.answerCount).toBe(8);
+    expect(payload.complete).toBe(true);
     expect(payload.score).toBeGreaterThanOrEqual(0);
     expect(payload.score).toBeLessThanOrEqual(100);
     expect(payload.findings.find((finding) => finding.id === "website-missing")?.fix).toContain(

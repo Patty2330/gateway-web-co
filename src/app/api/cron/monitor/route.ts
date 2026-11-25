@@ -1,6 +1,7 @@
 import { getStore } from "@/lib/db";
 import { getEmailSender } from "@/lib/email";
 import { executeScan } from "@/lib/engine";
+import { scanIsComplete } from "@/lib/scan-complete";
 import { monitorEmail } from "@/lib/monitor-email";
 import { addDaysIso } from "@/lib/purchase";
 import { appUrlFrom, monitorDays, safeEqual } from "@/lib/request";
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
       },
       scan.payload.questions,
     );
+    if (!scanIsComplete(payload)) {
+      // Leave nextRunAt due so the next cron can retry. Do not overwrite a finished report.
+      continue;
+    }
     const nextRunAt = addDaysIso(new Date(), monitorDays());
     await store.updateResults(scan.id, payload, {
       previousScore: scan.score,

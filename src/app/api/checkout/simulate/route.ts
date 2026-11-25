@@ -1,13 +1,9 @@
-import { z } from "zod";
+import { checkoutFormSchema } from "@/lib/schemas";
 
 import { getStore } from "@/lib/db";
 import { stripeConfigured } from "@/lib/stripe";
 
-const schema = z.object({
-  scanId: z.string().uuid(),
-  plan: z.enum(["report", "monitor"]),
-  email: z.string().trim().email(),
-});
+const schema = checkoutFormSchema;
 
 export async function POST(request: Request) {
   if (stripeConfigured()) {

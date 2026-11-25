@@ -103,6 +103,7 @@ export type ScanPayload = {
   score: number;
   mentionCount: number;
   answerCount: number;
+  complete: boolean;
   providers: ProviderStat[];
 };
 

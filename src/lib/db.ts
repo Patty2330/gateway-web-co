@@ -3,6 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { addDaysIso, applyPurchase, dropMonitor } from "@/lib/purchase";
+import { scanIsComplete } from "@/lib/scan-complete";
 import type { LeadInput, Plan, ScanPayload, ScanRecord, Tier } from "@/lib/types";
 
 type SqlValue = string | number | null;
@@ -140,19 +141,19 @@ class Store {
   }
 
   async findRecentByIp(ipHash: string, cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
-    const row = await this.sql.get(
-      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+    const rows = await this.sql.all(
+      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 20`,
       [ipHash, cacheKey, sinceIso],
     );
-    return row ? mapScan(row) : null;
+    return rows.map(mapScan).find((scan) => scanIsComplete(scan.payload)) ?? null;
   }
 
   async findRecentCache(cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
-    const row = await this.sql.get(
-      `SELECT * FROM scans WHERE cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+    const rows = await this.sql.all(
+      `SELECT * FROM scans WHERE cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 20`,
       [cacheKey, sinceIso],
     );
-    return row ? mapScan(row) : null;
+    return rows.map(mapScan).find((scan) => scanIsComplete(scan.payload)) ?? null;
   }
 
   async markPaid(
@@ -354,6 +355,34 @@ async function initSql(sql: Sql) {
   }
 }
 
+export function databaseType(databaseUrl?: string | null): "postgres" | "sqlite" {
+  const url = databaseUrl === undefined ? process.env.DATABASE_URL || null : databaseUrl;
+  if (url && /^postgres(ql)?:/i.test(url)) return "postgres";
+  return "sqlite";
+}
+
+const MISSING_DATABASE_URL_WARNING =
+  "DATABASE_URL is not set. This production process is using SQLite, which does not persist across deploys or multiple instances. Set DATABASE_URL to a Postgres database before going live.";
+
+/** Warning for production processes that have no DATABASE_URL. Never includes the URL or credentials. */
+export function missingDatabaseUrlWarning(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== "production") return null;
+  if (env.DATABASE_URL?.trim()) return null;
+  return MISSING_DATABASE_URL_WARNING;
+}
+
+let loggedMissingDatabaseUrl = false;
+
+export function logMissingDatabaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+  log: (message: string) => void = console.warn,
+): void {
+  const message = missingDatabaseUrlWarning(env);
+  if (!message || loggedMissingDatabaseUrl) return;
+  loggedMissingDatabaseUrl = true;
+  log(message);
+}
+
 function sqliteFile(databaseUrl?: string | null): string {
   if (process.env.SQLITE_PATH && databaseUrl === undefined) return process.env.SQLITE_PATH;
   if (databaseUrl?.startsWith("file:")) return databaseUrl.slice("file:".length);
@@ -364,6 +393,7 @@ export async function createStore(options?: {
   databaseUrl?: string | null;
   sqlitePath?: string;
 }): Promise<Store> {
+  logMissingDatabaseUrl();
   const databaseUrl =
     options && "databaseUrl" in options ? options.databaseUrl : process.env.DATABASE_URL || null;
 

@@ -3,13 +3,14 @@ export async function fetchWithTimeout(
   init: RequestInit,
   timeoutMs: number,
   dispatcher?: unknown,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const options: RequestInit & { dispatcher?: unknown } = { ...init, signal: controller.signal };
     if (dispatcher) options.dispatcher = dispatcher;
-    return await fetch(url, options);
+    return await fetchImpl(url, options);
   } finally {
     clearTimeout(timer);
   }

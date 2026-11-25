@@ -3,16 +3,25 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { getStore } from "@/lib/db";
+import { zodErrorMessage } from "@/lib/form-error";
 import { getEmailSender } from "@/lib/email";
 import { RateLimitConfigError, clientIp, hashIp } from "@/lib/request";
 
 const schema = z
   .object({
-    name: z.string().trim().min(2, "Add your name.").max(80, "Keep your name under 80 characters."),
+    name: z
+      .string({ error: "Add your name." })
+      .trim()
+      .min(2, "Add your name.")
+      .max(80, "Keep your name under 80 characters."),
     email: z.string().trim().max(120, "Keep the email under 120 characters.").optional(),
     phone: z.string().trim().max(40, "Keep the phone number under 40 characters.").optional(),
     businessName: z.string().trim().max(80, "Keep the business name under 80 characters.").optional(),
-    message: z.string().trim().min(5, "Add a short note.").max(2000, "Keep the note under 2,000 characters."),
+    message: z
+      .string({ error: "Add a short note." })
+      .trim()
+      .min(5, "Add a short note.")
+      .max(2000, "Keep the note under 2,000 characters."),
     scanId: z.string().uuid().optional().or(z.literal("")),
   })
   .superRefine((value, ctx) => {
@@ -36,7 +45,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return Response.json(
-      { error: parsed.error.issues[0]?.message || "Check the form and try again." },
+      { error: zodErrorMessage(parsed.error) },
       { status: 400 },
     );
   }

@@ -3,16 +3,35 @@ import { describe, expect, it } from "vitest";
 import { createStore } from "@/lib/db";
 import type { ScanPayload, ScanRecord } from "@/lib/types";
 
-function payload(score: number): ScanPayload {
+function answers(usable: number, total = 8) {
+  return Array.from({ length: total }, (_, index) => ({
+    questionId: `q${index + 1}`,
+    question: "What is the best plumber in Clarksville, TN?",
+    providerId: "perplexity" as const,
+    providerName: "Perplexity",
+    demo: true,
+    text: index < usable ? "1. Harper's Plumbing — often named." : "",
+    mentioned: index < usable,
+    rank: index < usable ? 1 : null,
+    competitors: [],
+    sources: [],
+    error: index < usable ? undefined : "Perplexity returned 429.",
+    points: index < usable ? 100 : 0,
+  }));
+}
+
+function payload(score: number, usable = 8): ScanPayload {
+  const rows = answers(usable);
   return {
     questions: [],
-    answers: [],
+    answers: rows,
     competitors: [],
     findings: [],
     siteCheck: null,
     score,
-    mentionCount: 1,
-    answerCount: 2,
+    mentionCount: rows.filter((row) => row.mentioned).length,
+    answerCount: usable,
+    complete: usable >= 6,
     providers: [],
   };
 }
@@ -89,5 +108,53 @@ describe("store", () => {
     expect(updated?.tier).toBe("report");
     expect(updated?.stripeSubscriptionId).toBeNull();
     expect(updated?.nextRunAt).toBeNull();
+  });
+
+  it("does not cache an incomplete scan, so a replay can run again", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(
+      scan("short", {
+        score: 0,
+        payload: payload(0, 1),
+      }),
+    );
+    const cached = await store.findRecentByIp(
+      "ip-1",
+      "harpers|plumber|clarksville|TN||demo",
+      "2026-11-25T00:00:00.000Z",
+    );
+    const donor = await store.findRecentCache(
+      "harpers|plumber|clarksville|TN||demo",
+      "2026-11-25T00:00:00.000Z",
+    );
+    expect(cached).toBeNull();
+    expect(donor).toBeNull();
+    expect(await store.getScan("short")).not.toBeNull();
+  });
+
+  it("skips an incomplete row and still serves a complete scan from the 24-hour cache", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(
+      scan("done", {
+        createdAt: "2026-11-25T11:00:00.000Z",
+        updatedAt: "2026-11-25T11:00:00.000Z",
+        payload: payload(70, 8),
+        score: 70,
+      }),
+    );
+    await store.insertScan(
+      scan("later-short", {
+        createdAt: "2026-11-25T12:30:00.000Z",
+        updatedAt: "2026-11-25T12:30:00.000Z",
+        payload: payload(0, 1),
+        score: 0,
+      }),
+    );
+    const cached = await store.findRecentCache(
+      "harpers|plumber|clarksville|TN||demo",
+      "2026-11-25T00:00:00.000Z",
+    );
+    expect(cached?.id).toBe("done");
+    expect(cached?.score).toBe(70);
   });
 });

@@ -1,21 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
 import { getStore } from "@/lib/db";
+import { zodErrorMessage } from "@/lib/form-error";
+import { scanFormSchema } from "@/lib/schemas";
 import { buildCacheKey, executeScan, scanMode } from "@/lib/engine";
 import { providerSignature } from "@/lib/providers";
 import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, hashIp } from "@/lib/request";
 import { normalizeWebsite } from "@/lib/website-url";
 import type { ScanRecord } from "@/lib/types";
 
-const schema = z.object({
-  businessName: z.string().trim().min(2, "Add the business name.").max(80, "Keep the business name under 80 characters."),
-  category: z.string().trim().min(2, "Add the kind of business.").max(40, "Keep the category under 40 characters."),
-  city: z.string().trim().min(2, "Add the city.").max(60, "Keep the city name under 60 characters."),
-  state: z.string().trim().length(2, "Pick a state.").toUpperCase(),
-  websiteUrl: z.string().trim().max(300, "Keep the website address under 300 characters.").optional(),
-});
+const schema = scanFormSchema;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -28,7 +22,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return Response.json(
-      { error: parsed.error.issues[0]?.message || "Check the form and try again." },
+      { error: zodErrorMessage(parsed.error) },
       { status: 400 },
     );
   }

@@ -3,6 +3,7 @@ import { buildFindings } from "@/lib/findings";
 import { mapPool } from "@/lib/http";
 import { parseAnswer } from "@/lib/parse";
 import { anyProviderConfigured, getProviders, type AnswerProvider } from "@/lib/providers";
+import { scanIsComplete } from "@/lib/scan-complete";
 import { buildQuestions } from "@/lib/questions";
 import { aggregateCompetitors, pointsFor, visibilityScore } from "@/lib/score";
 import { checkWebsite } from "@/lib/site-check";
@@ -23,6 +24,9 @@ export function buildCacheKey(input: ScanInput, signature: string): string {
 export function scanMode(): ScanMode {
   return anyProviderConfigured() ? "live" : "demo";
 }
+
+/** Live Perplexity questions run two at a time so a single check is less likely to hit 429s. */
+export const PERPLEXITY_CONCURRENCY = 2;
 
 export function buildPrompt(question: string, input: Pick<ScanInput, "city" | "state">): string {
   return [
@@ -127,34 +131,39 @@ async function askOne(
 export async function executeScan(
   input: ScanInput,
   existingQuestions?: Question[],
+  options: { providers?: AnswerProvider[]; concurrency?: number } = {},
 ): Promise<ScanPayload> {
   const questions = existingQuestions ?? buildQuestions(input);
-  const providers = getProviders();
+  const providers = options.providers ?? getProviders();
   const seed = demoSeed(input);
   const tasks = questions.flatMap((question) =>
     providers.map((provider) => ({ question, provider })),
   );
+  const concurrency = options.concurrency ?? PERPLEXITY_CONCURRENCY;
 
   const [answers, siteCheck] = await Promise.all([
-    mapPool(tasks, 6, ({ question, provider }) => askOne(provider, question, input, seed)),
+    mapPool(tasks, concurrency, ({ question, provider }) => askOne(provider, question, input, seed)),
     input.websiteUrl ? checkWebsite(input.websiteUrl, input.businessName) : Promise.resolve(null),
   ]);
 
   const usable = answers.filter((answer) => !answer.error);
   const mentionCount = usable.filter((answer) => answer.mentioned).length;
   const competitors = aggregateCompetitors(answers, input.businessName);
-  const score = visibilityScore(answers);
-  const findings = buildFindings({
-    businessName: input.businessName,
-    category: input.category,
-    city: input.city,
-    websiteUrl: input.websiteUrl,
-    mentionCount,
-    answerCount: usable.length,
-    answers,
-    competitors,
-    siteCheck,
-  });
+  const complete = scanIsComplete({ answers });
+  const score = complete ? visibilityScore(answers) : 0;
+  const findings = complete
+    ? buildFindings({
+        businessName: input.businessName,
+        category: input.category,
+        city: input.city,
+        websiteUrl: input.websiteUrl,
+        mentionCount,
+        answerCount: usable.length,
+        answers,
+        competitors,
+        siteCheck,
+      })
+    : [];
 
   const providerStats = providers.map((provider) => {
     const rows = answers.filter((answer) => answer.providerId === provider.id);
@@ -179,6 +188,7 @@ export async function executeScan(
     score,
     mentionCount,
     answerCount: usable.length,
+    complete,
     providers: providerStats,
   };
 }

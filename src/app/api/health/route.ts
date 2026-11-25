@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 
-import { getStore } from "@/lib/db";
+import { databaseType, getStore } from "@/lib/db";
 import { anyProviderConfigured } from "@/lib/providers";
 import { stripeConfigured } from "@/lib/stripe";
 
@@ -22,7 +22,7 @@ export async function GET() {
   const expectsPostgres = Boolean(process.env.DATABASE_URL);
   const ok = !expectsPostgres || database;
   return Response.json(
-    { ok, mode, stripe, database },
+    { ok, mode, stripe, database, databaseType: databaseType() },
     { status: ok ? 200 : 503, headers: noStore },
   );
 }

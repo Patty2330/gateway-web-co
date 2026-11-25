@@ -7,8 +7,8 @@ export function DownloadSummaryButton({ scan }: { scan: PublicScan }) {
     const lines = [
       `AI Visibility Check for ${scan.businessName}`,
       `${scan.category} in ${scan.city}, ${scan.state}`,
-      `Score: ${scan.score} / 100 (${scan.label})`,
-      scan.summary,
+      scan.complete ? `Score: ${scan.score} / 100 (${scan.label})` : scan.summary,
+      scan.complete ? scan.summary : "",
       "",
       "Fixes",
       ...(scan.findings ?? scan.topFindings).flatMap((finding) => [

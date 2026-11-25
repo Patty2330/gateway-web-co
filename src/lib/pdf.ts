@@ -48,13 +48,20 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
     writeLine(doc, `Checked ${formatReportTime(scan.createdAt)}`);
     doc.moveDown(0.6);
 
-    doc.font("Times-Bold").fontSize(28).fillColor("#8d2c2c");
-    writeLine(doc, `${scan.score} / 100`);
-    doc.font("Times-Bold").fontSize(13).fillColor("#1f4d3a");
-    writeLine(doc, scan.label);
-    doc.font("Times-Roman").fontSize(12).fillColor("#231c17");
-    writeLine(doc, scan.summary);
-    writeLine(doc, scan.hint);
+    if (scan.complete) {
+      doc.font("Times-Bold").fontSize(28).fillColor("#8d2c2c");
+      writeLine(doc, `${scan.score} / 100`);
+      doc.font("Times-Bold").fontSize(13).fillColor("#1f4d3a");
+      writeLine(doc, scan.label);
+      doc.font("Times-Roman").fontSize(12).fillColor("#231c17");
+      writeLine(doc, scan.summary);
+      writeLine(doc, scan.hint);
+    } else {
+      doc.font("Times-Bold").fontSize(16).fillColor("#8d2c2c");
+      writeLine(doc, "The check didn't finish");
+      doc.font("Times-Roman").fontSize(12).fillColor("#231c17");
+      writeLine(doc, scan.summary);
+    }
 
     if (scan.mode === "demo" || scan.demoAnswerCount > 0) {
       doc.moveDown(0.5);
