@@ -1,0 +1,341 @@
+import fs from "node:fs";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+
+import { addDaysIso, applyPurchase } from "@/lib/purchase";
+import type { LeadInput, Plan, ScanPayload, ScanRecord, Tier } from "@/lib/types";
+
+type SqlValue = string | number | null;
+type Row = Record<string, SqlValue | undefined>;
+
+interface Sql {
+  get(sql: string, params?: SqlValue[]): Promise<Row | undefined>;
+  all(sql: string, params?: SqlValue[]): Promise<Row[]>;
+  run(sql: string, params?: SqlValue[]): Promise<void>;
+}
+
+const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS scans (
+    id TEXT PRIMARY KEY,
+    business_name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    website_url TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    ip_hash TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    tier TEXT NOT NULL,
+    email TEXT,
+    stripe_session_id TEXT,
+    stripe_subscription_id TEXT,
+    next_run_at TEXT,
+    previous_score INTEGER,
+    payload TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS leads (
+    id TEXT PRIMARY KEY,
+    scan_id TEXT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT,
+    business_name TEXT,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS emails (
+    id TEXT PRIMARY KEY,
+    to_address TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    scan_id TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS rate_limits (
+    ip_hash TEXT NOT NULL,
+    day TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (ip_hash, day)
+  )`,
+  `CREATE INDEX IF NOT EXISTS scans_cache ON scans (cache_key, created_at)`,
+  `CREATE INDEX IF NOT EXISTS scans_ip ON scans (ip_hash, cache_key, created_at)`,
+  `CREATE INDEX IF NOT EXISTS scans_monitor ON scans (tier, next_run_at)`,
+];
+
+function text(value: SqlValue | undefined): string {
+  return value == null ? "" : String(value);
+}
+
+function nullable(value: SqlValue | undefined): string | null {
+  return value == null || value === "" ? null : String(value);
+}
+
+function mapScan(row: Row): ScanRecord {
+  return {
+    id: text(row.id),
+    businessName: text(row.business_name),
+    category: text(row.category),
+    city: text(row.city),
+    state: text(row.state),
+    websiteUrl: nullable(row.website_url),
+    createdAt: text(row.created_at),
+    updatedAt: text(row.updated_at),
+    ipHash: text(row.ip_hash),
+    mode: text(row.mode) === "live" ? "live" : "demo",
+    cacheKey: text(row.cache_key),
+    score: Number(row.score ?? 0),
+    tier: (text(row.tier) || "free") as Tier,
+    email: nullable(row.email),
+    stripeSessionId: nullable(row.stripe_session_id),
+    stripeSubscriptionId: nullable(row.stripe_subscription_id),
+    nextRunAt: nullable(row.next_run_at),
+    previousScore: row.previous_score == null ? null : Number(row.previous_score),
+    payload: JSON.parse(text(row.payload)) as ScanPayload,
+  };
+}
+
+class Store {
+  constructor(private readonly sql: Sql) {}
+
+  async insertScan(scan: ScanRecord): Promise<void> {
+    await this.sql.run(
+      `INSERT INTO scans (
+        id, business_name, category, city, state, website_url, created_at, updated_at,
+        ip_hash, mode, cache_key, score, tier, email, stripe_session_id,
+        stripe_subscription_id, next_run_at, previous_score, payload
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        scan.id,
+        scan.businessName,
+        scan.category,
+        scan.city,
+        scan.state,
+        scan.websiteUrl,
+        scan.createdAt,
+        scan.updatedAt,
+        scan.ipHash,
+        scan.mode,
+        scan.cacheKey,
+        scan.score,
+        scan.tier,
+        scan.email,
+        scan.stripeSessionId,
+        scan.stripeSubscriptionId,
+        scan.nextRunAt,
+        scan.previousScore,
+        JSON.stringify(scan.payload),
+      ],
+    );
+  }
+
+  async getScan(id: string): Promise<ScanRecord | null> {
+    const row = await this.sql.get(`SELECT * FROM scans WHERE id = ?`, [id]);
+    return row ? mapScan(row) : null;
+  }
+
+  async findRecentByIp(ipHash: string, cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
+    const row = await this.sql.get(
+      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+      [ipHash, cacheKey, sinceIso],
+    );
+    return row ? mapScan(row) : null;
+  }
+
+  async findRecentCache(cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
+    const row = await this.sql.get(
+      `SELECT * FROM scans WHERE cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+      [cacheKey, sinceIso],
+    );
+    return row ? mapScan(row) : null;
+  }
+
+  async markPaid(
+    id: string,
+    purchase: {
+      plan: Plan;
+      email: string | null;
+      stripeSessionId: string | null;
+      stripeSubscriptionId: string | null;
+      now?: Date;
+    },
+  ): Promise<ScanRecord | null> {
+    const current = await this.getScan(id);
+    if (!current) return null;
+    const tier = applyPurchase(current.tier, purchase.plan);
+    const now = purchase.now ?? new Date();
+    const nextRunAt =
+      tier === "monitor" ? current.nextRunAt ?? addDaysIso(now, 30) : current.nextRunAt;
+    await this.sql.run(
+      `UPDATE scans
+       SET tier = ?, email = ?, stripe_session_id = ?, stripe_subscription_id = ?, next_run_at = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        tier,
+        purchase.email || current.email,
+        purchase.stripeSessionId || current.stripeSessionId,
+        purchase.stripeSubscriptionId || current.stripeSubscriptionId,
+        nextRunAt,
+        now.toISOString(),
+        id,
+      ],
+    );
+    return this.getScan(id);
+  }
+
+  async updateResults(
+    id: string,
+    payload: ScanPayload,
+    update: { previousScore: number; nextRunAt: string; now?: Date },
+  ): Promise<void> {
+    const now = update.now ?? new Date();
+    await this.sql.run(
+      `UPDATE scans SET score = ?, payload = ?, previous_score = ?, next_run_at = ?, updated_at = ? WHERE id = ?`,
+      [
+        payload.score,
+        JSON.stringify(payload),
+        update.previousScore,
+        update.nextRunAt,
+        now.toISOString(),
+        id,
+      ],
+    );
+  }
+
+  async dueMonitors(nowIso: string): Promise<ScanRecord[]> {
+    const rows = await this.sql.all(
+      `SELECT * FROM scans WHERE tier = 'monitor' AND next_run_at IS NOT NULL AND next_run_at <= ? ORDER BY next_run_at ASC LIMIT 20`,
+      [nowIso],
+    );
+    return rows.map(mapScan);
+  }
+
+  async insertLead(id: string, lead: LeadInput, createdAt: string): Promise<void> {
+    await this.sql.run(
+      `INSERT INTO leads (id, scan_id, name, email, phone, business_name, message, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, lead.scanId, lead.name, lead.email, lead.phone, lead.businessName, lead.message, createdAt],
+    );
+  }
+
+  async insertEmail(input: {
+    id: string;
+    to: string;
+    subject: string;
+    body: string;
+    scanId: string | null;
+    createdAt: string;
+  }): Promise<void> {
+    await this.sql.run(
+      `INSERT INTO emails (id, to_address, subject, body, scan_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [input.id, input.to, input.subject, input.body, input.scanId, input.createdAt],
+    );
+  }
+
+  async consumeRateLimit(ipHash: string, day: string): Promise<number> {
+    const row = await this.sql.get(
+      `INSERT INTO rate_limits (ip_hash, day, count) VALUES (?, ?, 1)
+       ON CONFLICT(ip_hash, day) DO UPDATE SET count = rate_limits.count + 1
+       RETURNING count`,
+      [ipHash, day],
+    );
+    return Number(row?.count ?? 1);
+  }
+}
+
+class SqliteSql implements Sql {
+  constructor(private readonly db: DatabaseSync) {}
+
+  async get(sql: string, params: SqlValue[] = []) {
+    return this.db.prepare(sql).get(...params) as Row | undefined;
+  }
+
+  async all(sql: string, params: SqlValue[] = []) {
+    return this.db.prepare(sql).all(...params) as Row[];
+  }
+
+  async run(sql: string, params: SqlValue[] = []) {
+    this.db.prepare(sql).run(...params);
+  }
+}
+
+class PostgresSql implements Sql {
+  constructor(private readonly pool: import("pg").Pool) {}
+
+  private convert(sql: string): string {
+    let index = 0;
+    return sql.replace(/\?/g, () => `$${++index}`);
+  }
+
+  async get(sql: string, params: SqlValue[] = []) {
+    const result = await this.pool.query(this.convert(sql), params);
+    return result.rows[0] as Row | undefined;
+  }
+
+  async all(sql: string, params: SqlValue[] = []) {
+    const result = await this.pool.query(this.convert(sql), params);
+    return result.rows as Row[];
+  }
+
+  async run(sql: string, params: SqlValue[] = []) {
+    await this.pool.query(this.convert(sql), params);
+  }
+}
+
+async function initSql(sql: Sql) {
+  for (const statement of SCHEMA) {
+    await sql.run(statement);
+  }
+}
+
+function sqliteFile(databaseUrl?: string | null): string {
+  if (process.env.SQLITE_PATH && databaseUrl === undefined) return process.env.SQLITE_PATH;
+  if (databaseUrl?.startsWith("file:")) return databaseUrl.slice("file:".length);
+  return path.join(process.cwd(), "data", "visibility.db");
+}
+
+export async function createStore(options?: {
+  databaseUrl?: string | null;
+  sqlitePath?: string;
+}): Promise<Store> {
+  const databaseUrl =
+    options && "databaseUrl" in options ? options.databaseUrl : process.env.DATABASE_URL || null;
+
+  if (databaseUrl && /^postgres(ql)?:/i.test(databaseUrl)) {
+    const pg = await import("pg");
+    const needsSsl =
+      process.env.PGSSL === "require" || /render\.com|sslmode=require/i.test(databaseUrl);
+    const pool = new pg.Pool({
+      connectionString: databaseUrl,
+      max: 5,
+      ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    });
+    const sql = new PostgresSql(pool);
+    await initSql(sql);
+    return new Store(sql);
+  }
+
+  const file = options?.sqlitePath || sqliteFile(options ? databaseUrl : undefined);
+  if (file !== ":memory:") {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+  }
+  const db = new DatabaseSync(file);
+  if (file !== ":memory:") {
+    db.exec("PRAGMA journal_mode = WAL;");
+  }
+  db.exec("PRAGMA busy_timeout = 5000;");
+  const sql = new SqliteSql(db);
+  await initSql(sql);
+  return new Store(sql);
+}
+
+const globalStore = globalThis as unknown as { __visibilityStore?: Promise<Store> };
+
+export function getStore(): Promise<Store> {
+  if (!globalStore.__visibilityStore) {
+    globalStore.__visibilityStore = createStore();
+  }
+  return globalStore.__visibilityStore;
+}
