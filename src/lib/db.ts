@@ -3,6 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { addDaysIso, applyPurchase, dropMonitor } from "@/lib/purchase";
+import { scanIsComplete } from "@/lib/scan-complete";
 import type { LeadInput, Plan, ScanPayload, ScanRecord, Tier } from "@/lib/types";
 
 type SqlValue = string | number | null;
@@ -27,7 +28,7 @@ const SCHEMA = [
     ip_hash TEXT NOT NULL,
     mode TEXT NOT NULL,
     cache_key TEXT NOT NULL,
-    score INTEGER NOT NULL,
+    score INTEGER,
     tier TEXT NOT NULL,
     email TEXT,
     stripe_session_id TEXT,
@@ -77,6 +78,8 @@ function nullable(value: SqlValue | undefined): string | null {
 }
 
 function mapScan(row: Row): ScanRecord {
+  const payload = JSON.parse(text(row.payload)) as ScanPayload;
+  const complete = payload.complete ?? scanIsComplete(payload);
   return {
     id: text(row.id),
     businessName: text(row.business_name),
@@ -89,14 +92,14 @@ function mapScan(row: Row): ScanRecord {
     ipHash: text(row.ip_hash),
     mode: text(row.mode) === "live" ? "live" : "demo",
     cacheKey: text(row.cache_key),
-    score: Number(row.score ?? 0),
+    score: complete ? Number(row.score ?? payload.score ?? 0) : null,
     tier: (text(row.tier) || "free") as Tier,
     email: nullable(row.email),
     stripeSessionId: nullable(row.stripe_session_id),
     stripeSubscriptionId: nullable(row.stripe_subscription_id),
     nextRunAt: nullable(row.next_run_at),
     previousScore: row.previous_score == null ? null : Number(row.previous_score),
-    payload: JSON.parse(text(row.payload)) as ScanPayload,
+    payload,
   };
 }
 
@@ -140,19 +143,19 @@ class Store {
   }
 
   async findRecentByIp(ipHash: string, cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
-    const row = await this.sql.get(
-      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+    const rows = await this.sql.all(
+      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 20`,
       [ipHash, cacheKey, sinceIso],
     );
-    return row ? mapScan(row) : null;
+    return rows.map(mapScan).find((scan) => scanIsComplete(scan.payload)) ?? null;
   }
 
   async findRecentCache(cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
-    const row = await this.sql.get(
-      `SELECT * FROM scans WHERE cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1`,
+    const rows = await this.sql.all(
+      `SELECT * FROM scans WHERE cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 20`,
       [cacheKey, sinceIso],
     );
-    return row ? mapScan(row) : null;
+    return rows.map(mapScan).find((scan) => scanIsComplete(scan.payload)) ?? null;
   }
 
   async markPaid(
@@ -296,6 +299,22 @@ class Store {
     );
     return Number(row?.count ?? 1);
   }
+
+  /** Decrement today's count, but never below zero. Safe to call more than once. */
+  async refundRateLimit(ipHash: string, day: string): Promise<number> {
+    const row = await this.sql.get(
+      `UPDATE rate_limits SET count = count - 1
+       WHERE ip_hash = ? AND day = ? AND count > 0
+       RETURNING count`,
+      [ipHash, day],
+    );
+    if (row) return Number(row.count ?? 0);
+    const existing = await this.sql.get(
+      `SELECT count FROM rate_limits WHERE ip_hash = ? AND day = ?`,
+      [ipHash, day],
+    );
+    return Number(existing?.count ?? 0);
+  }
 }
 
 class SqliteSql implements Sql {
@@ -345,13 +364,42 @@ async function initSql(sql: Sql) {
   for (const statement of [
     `ALTER TABLE emails ADD COLUMN status TEXT NOT NULL DEFAULT 'stored'`,
     `ALTER TABLE emails ADD COLUMN error TEXT`,
+    `ALTER TABLE scans ALTER COLUMN score DROP NOT NULL`,
   ]) {
     try {
       await sql.run(statement);
     } catch {
-      // The column is already there.
+      // The column is already there, or this engine cannot drop NOT NULL.
     }
   }
+}
+
+export function databaseType(databaseUrl?: string | null): "postgres" | "sqlite" {
+  const url = databaseUrl === undefined ? process.env.DATABASE_URL || null : databaseUrl;
+  if (url && /^postgres(ql)?:/i.test(url)) return "postgres";
+  return "sqlite";
+}
+
+const MISSING_DATABASE_URL_WARNING =
+  "DATABASE_URL is not set. This production process is using SQLite, which does not persist across deploys or multiple instances. Set DATABASE_URL to a Postgres database before going live.";
+
+/** Warning for production processes that have no DATABASE_URL. Never includes the URL or credentials. */
+export function missingDatabaseUrlWarning(env: NodeJS.ProcessEnv = process.env): string | null {
+  if (env.NODE_ENV !== "production") return null;
+  if (env.DATABASE_URL?.trim()) return null;
+  return MISSING_DATABASE_URL_WARNING;
+}
+
+const processFlags = globalThis as unknown as { __gatewayMissingDatabaseUrlLogged?: boolean };
+
+export function logMissingDatabaseUrl(
+  env: NodeJS.ProcessEnv = process.env,
+  log: (message: string) => void = console.warn,
+): void {
+  const message = missingDatabaseUrlWarning(env);
+  if (!message || processFlags.__gatewayMissingDatabaseUrlLogged) return;
+  processFlags.__gatewayMissingDatabaseUrlLogged = true;
+  log(message);
 }
 
 function sqliteFile(databaseUrl?: string | null): string {
@@ -364,6 +412,7 @@ export async function createStore(options?: {
   databaseUrl?: string | null;
   sqlitePath?: string;
 }): Promise<Store> {
+  logMissingDatabaseUrl();
   const databaseUrl =
     options && "databaseUrl" in options ? options.databaseUrl : process.env.DATABASE_URL || null;
 

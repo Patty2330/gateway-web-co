@@ -1,4 +1,5 @@
-import { fetchWithTimeout, shortError } from "@/lib/http";
+import { shortError } from "@/lib/http";
+import { fetchWithRetry } from "@/lib/retry";
 import type { ProviderId, Source } from "@/lib/types";
 
 export type ProviderAnswer = {
@@ -6,11 +7,17 @@ export type ProviderAnswer = {
   sources: Source[];
 };
 
+export type ProviderAskOptions = {
+  signal?: AbortSignal;
+  deadlineAt?: number;
+  now?: () => number;
+};
+
 export type AnswerProvider = {
   id: ProviderId;
   name: string;
   configured: () => boolean;
-  answer: (prompt: string) => Promise<ProviderAnswer>;
+  answer: (prompt: string, options?: ProviderAskOptions) => Promise<ProviderAnswer>;
 };
 
 function mergeTitle(sources: Source[]): Source[] {
@@ -84,9 +91,11 @@ function perplexity(): AnswerProvider {
     id: "perplexity",
     name: "Perplexity",
     configured: () => Boolean(process.env.PERPLEXITY_API_KEY),
-    async answer(prompt: string) {
+    async answer(prompt: string, options: ProviderAskOptions = {}) {
       const model = process.env.PERPLEXITY_MODEL || "perplexity/sonar";
-      const response = await fetchWithTimeout(
+      const now = options.now ?? Date.now;
+      const remaining = options.deadlineAt == null ? 28_000 : Math.max(0, options.deadlineAt - now());
+      const response = await fetchWithRetry(
         "https://api.perplexity.ai/v1/agent",
         {
           method: "POST",
@@ -104,7 +113,13 @@ function perplexity(): AnswerProvider {
             max_output_tokens: 700,
           }),
         },
-        28_000,
+        {
+          timeoutMs: Math.min(28_000, remaining),
+          maxTotalMs: remaining,
+          signal: options.signal,
+          deadlineAt: options.deadlineAt,
+          now,
+        },
       );
       if (!response.ok) {
         throw new Error(shortError("Perplexity", response.status, await readError(response)));

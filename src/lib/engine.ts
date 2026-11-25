@@ -1,10 +1,11 @@
 import { buildDemoAnswer, demoSeed } from "@/lib/demo";
 import { buildFindings } from "@/lib/findings";
-import { mapPool } from "@/lib/http";
 import { parseAnswer } from "@/lib/parse";
-import { anyProviderConfigured, getProviders, type AnswerProvider } from "@/lib/providers";
+import { anyProviderConfigured, getProviders, type AnswerProvider, type ProviderAskOptions } from "@/lib/providers";
+import { MIN_ANSWERS_TO_FINISH, scanIsComplete } from "@/lib/scan-complete";
 import { buildQuestions } from "@/lib/questions";
 import { aggregateCompetitors, pointsFor, visibilityScore } from "@/lib/score";
+import { formatCityState } from "@/lib/place";
 import { checkWebsite } from "@/lib/site-check";
 import type { AnswerRecord, Question, ScanInput, ScanMode, ScanPayload, Source } from "@/lib/types";
 
@@ -24,9 +25,18 @@ export function scanMode(): ScanMode {
   return anyProviderConfigured() ? "live" : "demo";
 }
 
+/** Live Perplexity questions run two at a time so a single check is less likely to hit 429s. */
+export const PERPLEXITY_CONCURRENCY = 2;
+
+/**
+ * Hard wall-clock cap for one check, including per-request timeouts, retries, and waits.
+ * In-flight Perplexity requests are aborted when this deadline is reached.
+ */
+export const SCAN_DEADLINE_MS = 40_000;
+
 export function buildPrompt(question: string, input: Pick<ScanInput, "city" | "state">): string {
   return [
-    `A customer in ${input.city}, ${input.state} asks: "${question}"`,
+    `A customer in ${formatCityState(input.city, input.state)} asks: "${question}"`,
     "Answer the way you would to that customer.",
     "When you recommend more than one business, use a numbered list with the best option first.",
     "Start each numbered item with the business name, then a short reason.",
@@ -52,6 +62,7 @@ async function askOne(
   question: Question,
   input: ScanInput,
   seed: number,
+  ask?: ProviderAskOptions,
 ): Promise<AnswerRecord> {
   const base = {
     questionId: question.id,
@@ -83,7 +94,7 @@ async function askOne(
   }
 
   try {
-    const live = await provider.answer(buildPrompt(question.text, input));
+    const live = await provider.answer(buildPrompt(question.text, input), ask);
     if (!live.text) {
       return {
         ...base,
@@ -127,58 +138,170 @@ async function askOne(
 export async function executeScan(
   input: ScanInput,
   existingQuestions?: Question[],
+  options: {
+    providers?: AnswerProvider[];
+    concurrency?: number;
+    deadlineMs?: number;
+    now?: () => number;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<ScanPayload> {
   const questions = existingQuestions ?? buildQuestions(input);
-  const providers = getProviders();
+  const providers = options.providers ?? getProviders();
   const seed = demoSeed(input);
   const tasks = questions.flatMap((question) =>
     providers.map((provider) => ({ question, provider })),
   );
+  const concurrency = options.concurrency ?? PERPLEXITY_CONCURRENCY;
+  const now = options.now ?? Date.now;
+  const deadlineMs = options.deadlineMs ?? SCAN_DEADLINE_MS;
+  const started = now();
+  const deadlineAt = started + deadlineMs;
+  const controller = new AbortController();
+  const onParentAbort = () => controller.abort();
+  if (options.signal) {
+    if (options.signal.aborted) controller.abort();
+    else options.signal.addEventListener("abort", onParentAbort);
+  }
+  const realClock = now === Date.now;
+  const timer = realClock
+    ? setTimeout(() => controller.abort(), Math.max(0, deadlineAt - Date.now()))
+    : undefined;
 
-  const [answers, siteCheck] = await Promise.all([
-    mapPool(tasks, 6, ({ question, provider }) => askOne(provider, question, input, seed)),
-    input.websiteUrl ? checkWebsite(input.websiteUrl, input.businessName) : Promise.resolve(null),
-  ]);
-
-  const usable = answers.filter((answer) => !answer.error);
-  const mentionCount = usable.filter((answer) => answer.mentioned).length;
-  const competitors = aggregateCompetitors(answers, input.businessName);
-  const score = visibilityScore(answers);
-  const findings = buildFindings({
-    businessName: input.businessName,
-    category: input.category,
-    city: input.city,
-    websiteUrl: input.websiteUrl,
-    mentionCount,
-    answerCount: usable.length,
-    answers,
-    competitors,
-    siteCheck,
+  const cancelledAnswer = (task: (typeof tasks)[number], message: string): AnswerRecord => ({
+    questionId: task.question.id,
+    question: task.question.text,
+    providerId: task.provider.id,
+    providerName: task.provider.name,
+    demo: false,
+    text: "",
+    mentioned: false,
+    rank: null,
+    competitors: [],
+    sources: [],
+    error: message,
+    points: 0,
   });
 
-  const providerStats = providers.map((provider) => {
-    const rows = answers.filter((answer) => answer.providerId === provider.id);
-    const error = rows.find((row) => row.error)?.error;
+  const results: Array<AnswerRecord | undefined> = new Array(tasks.length);
+  let next = 0;
+  let settled = 0;
+  let successes = 0;
+
+  const canStillFinish = () => successes + (tasks.length - settled) >= MIN_ANSWERS_TO_FINISH;
+  const outOfTime = () => controller.signal.aborted || now() >= deadlineAt;
+
+  try {
+    const siteCheckPromise = input.websiteUrl
+      ? checkWebsite(input.websiteUrl, input.businessName)
+      : Promise.resolve(null);
+
+    const workers = Array.from({ length: Math.min(concurrency, Math.max(1, tasks.length)) }, async () => {
+      while (next < tasks.length) {
+        if (outOfTime() || !canStillFinish()) {
+          controller.abort();
+          return;
+        }
+        const index = next;
+        next += 1;
+        const task = tasks[index];
+        try {
+          results[index] = await askOne(task.provider, task.question, input, seed, {
+            signal: controller.signal,
+            deadlineAt,
+            now,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error && error.name === "AbortError"
+              ? "The check ran out of time."
+              : error instanceof Error
+                ? error.message.slice(0, 240)
+                : `${task.provider.name} failed.`;
+          results[index] = cancelledAnswer(task, message);
+        } finally {
+          settled += 1;
+          if (results[index] && !results[index]?.error) successes += 1;
+          if (outOfTime() || !canStillFinish()) controller.abort();
+        }
+      }
+    });
+
+    await Promise.all(workers);
+    controller.abort();
+
+    for (let index = 0; index < tasks.length; index++) {
+      if (!results[index]) {
+        results[index] = cancelledAnswer(
+          tasks[index],
+          outOfTime() ? "The check ran out of time." : "The check didn't finish.",
+        );
+      }
+    }
+
+    let siteCheck = null;
+    if (input.websiteUrl) {
+      const leftover = Math.max(0, deadlineAt - now());
+      siteCheck = await Promise.race([
+        siteCheckPromise,
+        new Promise<null>((resolve) => {
+          if (!realClock || leftover <= 0) {
+            resolve(null);
+            return;
+          }
+          setTimeout(() => resolve(null), leftover);
+        }),
+      ]);
+    }
+
+    const answers = results as AnswerRecord[];
+    const usable = answers.filter((answer) => !answer.error);
+    const mentionCount = usable.filter((answer) => answer.mentioned).length;
+    const competitors = aggregateCompetitors(answers, input.businessName);
+    const complete = scanIsComplete({ answers });
+    const score = complete ? visibilityScore(answers) : null;
+    const findings = complete
+      ? buildFindings({
+          businessName: input.businessName,
+          category: input.category,
+          city: input.city,
+          websiteUrl: input.websiteUrl,
+          mentionCount,
+          answerCount: usable.length,
+          answers,
+          competitors,
+          siteCheck,
+        })
+      : [];
+
+    const providerStats = providers.map((provider) => {
+      const rows = answers.filter((answer) => answer.providerId === provider.id);
+      const error = rows.find((row) => row.error)?.error;
+      return {
+        id: provider.id,
+        name: provider.name,
+        demo: rows.length > 0 && rows.every((row) => row.demo),
+        mentions: rows.filter((row) => row.mentioned && !row.error).length,
+        answers: rows.filter((row) => !row.error).length,
+        errors: rows.filter((row) => row.error).length,
+        error,
+      };
+    });
+
     return {
-      id: provider.id,
-      name: provider.name,
-      demo: rows.length > 0 && rows.every((row) => row.demo),
-      mentions: rows.filter((row) => row.mentioned && !row.error).length,
-      answers: rows.filter((row) => !row.error).length,
-      errors: rows.filter((row) => row.error).length,
-      error,
+      questions,
+      answers,
+      competitors,
+      findings,
+      siteCheck,
+      score,
+      mentionCount,
+      answerCount: usable.length,
+      complete,
+      providers: providerStats,
     };
-  });
-
-  return {
-    questions,
-    answers,
-    competitors,
-    findings,
-    siteCheck,
-    score,
-    mentionCount,
-    answerCount: usable.length,
-    providers: providerStats,
-  };
+  } finally {
+    if (timer) clearTimeout(timer);
+    options.signal?.removeEventListener("abort", onParentAbort);
+  }
 }

@@ -58,6 +58,7 @@ export function runDemoScan(input: ScanInput): ScanPayload {
     score,
     mentionCount,
     answerCount: answers.length,
+    complete: true,
     providers: [
       {
         id: "perplexity",

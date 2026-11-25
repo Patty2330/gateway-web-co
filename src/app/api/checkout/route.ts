@@ -1,14 +1,11 @@
-import { z } from "zod";
-
 import { getStore } from "@/lib/db";
+import { zodErrorMessage } from "@/lib/form-error";
+import { UNFINISHED_CHECKOUT_MESSAGE, scanIsComplete } from "@/lib/scan-complete";
+import { checkoutFormSchema } from "@/lib/schemas";
 import { appUrlFrom } from "@/lib/request";
 import { createCheckoutSession } from "@/lib/stripe";
 
-const schema = z.object({
-  scanId: z.string().uuid("Open a check before you pay."),
-  plan: z.enum(["report", "monitor"]),
-  email: z.string().trim().email("Add an email so we know where to send updates."),
-});
+const schema = checkoutFormSchema;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -20,7 +17,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return Response.json(
-      { error: parsed.error.issues[0]?.message || "Check the email and try again." },
+      { error: zodErrorMessage(parsed.error, "Check the email and try again.") },
       { status: 400 },
     );
   }
@@ -28,6 +25,9 @@ export async function POST(request: Request) {
   const store = await getStore();
   const scan = await store.getScan(parsed.data.scanId);
   if (!scan) return Response.json({ error: "We can't find that check." }, { status: 404 });
+  if (!scanIsComplete(scan.payload)) {
+    return Response.json({ error: UNFINISHED_CHECKOUT_MESSAGE }, { status: 409 });
+  }
 
   try {
     const url = await createCheckoutSession({

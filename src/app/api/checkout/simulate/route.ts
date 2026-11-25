@@ -1,13 +1,10 @@
-import { z } from "zod";
+import { checkoutFormSchema } from "@/lib/schemas";
 
 import { getStore } from "@/lib/db";
+import { UNFINISHED_CHECKOUT_MESSAGE, scanIsComplete } from "@/lib/scan-complete";
 import { stripeConfigured } from "@/lib/stripe";
 
-const schema = z.object({
-  scanId: z.string().uuid(),
-  plan: z.enum(["report", "monitor"]),
-  email: z.string().trim().email(),
-});
+const schema = checkoutFormSchema;
 
 export async function POST(request: Request) {
   if (stripeConfigured()) {
@@ -29,6 +26,11 @@ export async function POST(request: Request) {
   }
 
   const store = await getStore();
+  const existing = await store.getScan(parsed.data.scanId);
+  if (!existing) return Response.json({ error: "We can't find that check." }, { status: 404 });
+  if (!scanIsComplete(existing.payload)) {
+    return Response.json({ error: UNFINISHED_CHECKOUT_MESSAGE }, { status: 409 });
+  }
   const scan = await store.markPaid(parsed.data.scanId, {
     plan: parsed.data.plan,
     email: parsed.data.email,

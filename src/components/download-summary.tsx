@@ -1,14 +1,15 @@
 "use client";
 
+import { formatCityState } from "@/lib/place";
 import type { PublicScan } from "@/lib/present";
 
 export function DownloadSummaryButton({ scan }: { scan: PublicScan }) {
   function download() {
     const lines = [
       `AI Visibility Check for ${scan.businessName}`,
-      `${scan.category} in ${scan.city}, ${scan.state}`,
-      `Score: ${scan.score} / 100 (${scan.label})`,
-      scan.summary,
+      `${scan.category} in ${formatCityState(scan.city, scan.state)}`,
+      scan.complete ? `Score: ${scan.score} / 100 (${scan.label})` : scan.summary,
+      scan.complete ? scan.summary : "",
       "",
       "Fixes",
       ...(scan.findings ?? scan.topFindings).flatMap((finding) => [

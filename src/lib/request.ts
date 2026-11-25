@@ -73,6 +73,23 @@ export function dailyLimit(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 }
 
+/** How many unfinished attempts can be refunded toward the daily cap. */
+export function unfinishedRetryLimit(): number {
+  const parsed = Number(process.env.UNFINISHED_RETRY_LIMIT || 5);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+}
+
+export function unfinishedRateKey(ipHash: string): string {
+  return `${ipHash}:unfinished`;
+}
+
+export function shouldRefundUnfinishedAttempt(
+  unfinishedCount: number,
+  cap = unfinishedRetryLimit(),
+): boolean {
+  return unfinishedCount > 0 && unfinishedCount <= cap;
+}
+
 export function cacheHours(): number {
   const parsed = Number(process.env.CACHE_HOURS || 24);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
