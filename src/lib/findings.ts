@@ -22,9 +22,9 @@ export function buildFindings(input: {
       id: "no-answers",
       priority: 1,
       area: "content",
-      title: "The AI tools didn't answer this run",
-      why: "Every provider returned an error, so the score can't tell you much yet.",
-      fix: "Check the API keys and run the check again. The free daily limit and the 24-hour cache are there so a retry stays cheap.",
+      title: "Perplexity didn't answer this run",
+      why: "The check didn't get an answer back, so the score can't tell you much yet.",
+      fix: "Check PERPLEXITY_API_KEY and run the check again. The free daily limit and the 24-hour cache are there so a retry stays cheap.",
     });
   }
 

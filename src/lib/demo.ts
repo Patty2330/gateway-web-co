@@ -1,5 +1,3 @@
-import type { ProviderId } from "@/lib/types";
-
 const STEMS = [
   "Cumberland",
   "Maple Street",
@@ -16,12 +14,6 @@ const REASONS = [
   "Listed with a phone number and a service area.",
   "Comes up when people ask about reviews.",
 ];
-
-const PROVIDER_SHIFT: Record<ProviderId, number> = {
-  openai: 1,
-  perplexity: 4,
-  gemini: 8,
-};
 
 export function hashString(input: string): number {
   let hash = 2166136261;
@@ -44,21 +36,10 @@ export function demoSeed(input: {
 }
 
 /** Rank to place the business, or null when the sample answer leaves them out. */
-export function demoPlacement(
-  seed: number,
-  providerId: ProviderId,
-  questionIndex: number,
-): number | null {
-  const n = (seed + questionIndex * 13 + PROVIDER_SHIFT[providerId]) % 11;
-  if (providerId === "perplexity") {
-    if (n % 3 !== 0) return null;
-    return 2;
-  }
-  if (providerId === "gemini") {
-    return n % 2 === 0 ? 1 : 4;
-  }
-  if (n % 5 === 0) return null;
-  return (n % 4) + 1;
+export function demoPlacement(seed: number, questionIndex: number): number | null {
+  const n = (seed + questionIndex * 13 + 4) % 11;
+  if (n % 3 !== 0) return null;
+  return 2;
 }
 
 function tradeName(category: string): string {
@@ -72,7 +53,6 @@ export function buildDemoAnswer(input: {
   category: string;
   city: string;
   state: string;
-  providerId: ProviderId;
   questionIndex: number;
   seed?: number;
 }): string {
@@ -84,7 +64,7 @@ export function buildDemoAnswer(input: {
       city: input.city,
       state: input.state,
     });
-  const placement = demoPlacement(seed, input.providerId, input.questionIndex);
+  const placement = demoPlacement(seed, input.questionIndex);
   const trade = tradeName(input.category);
   const competitors = STEMS.map((stem) => `${stem} ${trade}`).filter(
     (name) => name.toLowerCase() !== input.businessName.trim().toLowerCase(),

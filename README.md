@@ -2,7 +2,7 @@
 
 One site for Jalen's Clarksville web business. The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
 
-The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks ChatGPT, Perplexity, and Gemini the questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
+The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
 
 ## Run it on your computer
 
@@ -34,29 +34,19 @@ The quote form and the "get it fixed" form on a report both save a lead in the d
 
 ## Sample mode and live mode
 
-- No OpenAI, Perplexity, or Gemini key: every answer is a labeled sample. Cost is $0.
-- One or two keys: those tools are asked for real. The others stay labeled samples.
-- All three keys: the whole check is live.
+Leave `PERPLEXITY_API_KEY` blank and every answer is a labeled sample. Cost is $0. Set the key and the same eight questions go to Perplexity. That is the only engine.
 
-The same business is reused for 24 hours so a refresh does not call the AI again. Each connection gets 5 new checks a day.
+The same business is reused for 24 hours so a refresh does not call Perplexity again. Each connection gets 5 new checks a day.
 
-Copy `.env.example` to `.env.local` and fill in only what you have. The file lists every key: OpenAI, Perplexity (`POST /v1/agent`, model `perplexity/sonar`), Gemini, Stripe test mode, Postgres, and the monthly cron secret.
+Copy `.env.example` to `.env.local`. The check needs `PERPLEXITY_API_KEY` (Agent API, model `perplexity/sonar`). Stripe test mode, Postgres, and the monthly cron secret are separate.
 
 Stripe, without a secret key, opens a practice checkout that is labeled as a practice and does not charge a card. With `sk_test_...`, Checkout is real test mode. Card `4242 4242 4242 4242`.
 
 ## What a scan costs
 
-A live scan asks 8 questions. Sample mode is free. Prices below are from public rate cards in November 2026. They move.
+A live scan asks Perplexity 8 questions. Sample mode is free. Prices below are from Perplexity's public rate card in November 2026. They move.
 
-| Piece | Rough cost for 8 questions |
-| --- | --- |
-| OpenAI `gpt-4o-mini` tokens only | About half a cent |
-| OpenAI web search (on unless `OPENAI_WEB_SEARCH=false`) | Often about $0.08 to $0.25 |
-| Perplexity `perplexity/sonar` plus one web search each | About 3 to 8 cents |
-| Gemini Flash tokens | Under 2 cents |
-| Gemini Google Search grounding (on unless `GEMINI_GROUNDING=false`) | About $0.28 once you are past Google's free daily allowance |
-
-**A normal live scan is about $0.05 to $0.30.** It can land closer to **$0.40 to $0.60** when grounding and OpenAI search are both being billed. Twenty different businesses in a day is roughly $1 to $12. Stripe's fee on a $49 card is about $1.72.
+`perplexity/sonar` is $0.25 per million input tokens and $2.50 per million output tokens, plus $0.0025 per web search. Each question does one search. **One scan is about 3 to 8 cents.** Twenty different businesses in a day is roughly $0.60 to $1.60. Stripe's fee on a $49 card is about $1.72.
 
 ## Deploy on Render
 
@@ -64,7 +54,7 @@ GitHub Pages cannot run this app. It needs Node, and the database should be Post
 
 1. Create a Render Postgres database and copy the internal URL into `DATABASE_URL`. Set `PGSSL=require`.
 2. Create a web service from this repo. Build: `npm install && npm run build`. Start: `npm start`. The start script listens on `0.0.0.0` and `$PORT`.
-3. Set `APP_URL` to the public https address. Add any AI keys, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `CRON_SECRET`.
+3. Set `APP_URL` to the public https address. Add `PERPLEXITY_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `CRON_SECRET`. A `render.yaml` in this repo creates the web service and Postgres and wires `DATABASE_URL`.
 4. Health check path: `/api/health`.
 5. In Stripe, add a webhook at `https://YOUR-DOMAIN/api/stripe/webhook` for `checkout.session.completed`. Keep the test key until you mean to charge real cards.
 6. Add a Render cron job that POSTs to `/api/cron/monitor` once a month with `Authorization: Bearer <CRON_SECRET>`.

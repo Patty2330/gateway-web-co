@@ -4,7 +4,6 @@ import { buildDemoAnswer, demoPlacement, demoSeed } from "@/lib/demo";
 import { buildFindings } from "@/lib/findings";
 import { parseAnswer } from "@/lib/parse";
 import { buildQuestions } from "@/lib/questions";
-import type { ProviderId } from "@/lib/types";
 
 describe("questions", () => {
   it("asks eight local questions and changes the extra one by trade", () => {
@@ -28,19 +27,16 @@ describe("demo answers", () => {
       state: "TN",
     };
     const seed = demoSeed(input);
-    const providers: ProviderId[] = ["openai", "perplexity", "gemini"];
-    for (const providerId of providers) {
-      for (let index = 0; index < 8; index++) {
-        const expected = demoPlacement(seed, providerId, index);
-        const text = buildDemoAnswer({ ...input, providerId, questionIndex: index, seed });
-        const parsed = parseAnswer(text, input.businessName);
-        expect(parsed.sources.some((source) => source.url.includes("example.com"))).toBe(true);
-        if (expected == null) {
-          expect(parsed.mentioned).toBe(false);
-        } else {
-          expect(parsed.mentioned).toBe(true);
-          expect(parsed.rank).toBe(expected);
-        }
+    for (let index = 0; index < 8; index++) {
+      const expected = demoPlacement(seed, index);
+      const text = buildDemoAnswer({ ...input, questionIndex: index, seed });
+      const parsed = parseAnswer(text, input.businessName);
+      expect(parsed.sources.some((source) => source.url.includes("example.com"))).toBe(true);
+      if (expected == null) {
+        expect(parsed.mentioned).toBe(false);
+      } else {
+        expect(parsed.mentioned).toBe(true);
+        expect(parsed.rank).toBe(expected);
       }
     }
   });

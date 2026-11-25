@@ -79,67 +79,6 @@ function textFromResponses(data: Json): ProviderAnswer {
   return { text: texts.join("\n\n").trim(), sources: mergeTitle(sources) };
 }
 
-function openAI(): AnswerProvider {
-  return {
-    id: "openai",
-    name: "ChatGPT",
-    configured: () => Boolean(process.env.OPENAI_API_KEY),
-    async answer(prompt: string) {
-      const key = process.env.OPENAI_API_KEY || "";
-      const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-      const headers = {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      };
-      if (process.env.OPENAI_WEB_SEARCH !== "false") {
-        const response = await fetchWithTimeout(
-          "https://api.openai.com/v1/responses",
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              model,
-              input: prompt,
-              tools: [{ type: process.env.OPENAI_SEARCH_TOOL || "web_search" }],
-            }),
-          },
-          28_000,
-        );
-        if (response.ok) {
-          return textFromResponses((await response.json()) as Json);
-        }
-        const body = await readError(response);
-        if (response.status !== 400 && response.status !== 404) {
-          throw new Error(shortError("ChatGPT", response.status, body));
-        }
-      }
-
-      const response = await fetchWithTimeout(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model,
-            temperature: 0.2,
-            messages: [{ role: "user", content: prompt }],
-          }),
-        },
-        28_000,
-      );
-      if (!response.ok) {
-        throw new Error(shortError("ChatGPT", response.status, await readError(response)));
-      }
-      const data = (await response.json()) as Json;
-      const choices = Array.isArray(data.choices) ? data.choices : [];
-      const first = choices[0] as Json | undefined;
-      const message = first?.message as Json | undefined;
-      const text = typeof message?.content === "string" ? message.content : "";
-      return { text: text.trim(), sources: [] };
-    },
-  };
-}
-
 function perplexity(): AnswerProvider {
   return {
     id: "perplexity",
@@ -174,70 +113,8 @@ function perplexity(): AnswerProvider {
   };
 }
 
-function gemini(): AnswerProvider {
-  return {
-    id: "gemini",
-    name: "Gemini",
-    configured: () => Boolean(process.env.GEMINI_API_KEY),
-    async answer(prompt: string) {
-      const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-      const grounding = process.env.GEMINI_GROUNDING !== "false";
-      const ask = async (withSearch: boolean) => {
-        const body: Json = {
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 700, temperature: 0.2 },
-        };
-        if (withSearch) body.tools = [{ google_search: {} }];
-        return fetchWithTimeout(
-          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          },
-          28_000,
-        );
-      };
-
-      let response = await ask(grounding);
-      if (!response.ok && grounding && (response.status === 400 || response.status === 404)) {
-        response = await ask(false);
-      }
-      if (!response.ok) {
-        throw new Error(shortError("Gemini", response.status, await readError(response)));
-      }
-      const data = (await response.json()) as Json;
-      const candidates = Array.isArray(data.candidates) ? data.candidates : [];
-      const candidate = candidates[0] as Json | undefined;
-      const content = candidate?.content as Json | undefined;
-      const parts = Array.isArray(content?.parts) ? content.parts : [];
-      const text = parts
-        .map((part) => (part && typeof part === "object" ? (part as Json).text : ""))
-        .filter((part): part is string => typeof part === "string")
-        .join("\n")
-        .trim();
-      const groundingMeta = candidate?.groundingMetadata as Json | undefined;
-      const chunks = Array.isArray(groundingMeta?.groundingChunks)
-        ? groundingMeta.groundingChunks
-        : [];
-      const sources: Source[] = [];
-      for (const chunk of chunks) {
-        if (!chunk || typeof chunk !== "object") continue;
-        const web = (chunk as Json).web as Json | undefined;
-        if (web && typeof web.uri === "string") {
-          sources.push({
-            url: web.uri,
-            title: typeof web.title === "string" ? web.title : undefined,
-          });
-        }
-      }
-      return { text, sources: mergeTitle(sources) };
-    },
-  };
-}
-
 export function getProviders(): AnswerProvider[] {
-  return [openAI(), perplexity(), gemini()];
+  return [perplexity()];
 }
 
 export function providerSignature(providers: AnswerProvider[] = getProviders()): string {

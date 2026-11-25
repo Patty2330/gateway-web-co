@@ -31,8 +31,7 @@ export function ResultsView({
   paidNotice: boolean;
   cancelNotice: boolean;
 }) {
-  const mixed = scan.demoAnswerCount > 0 && scan.liveAnswerCount > 0;
-  const sampleOnly = scan.mode === "demo" || (scan.demoAnswerCount > 0 && scan.liveAnswerCount === 0);
+  const sampleOnly = scan.mode === "demo";
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-8">
@@ -49,14 +48,8 @@ export function ResultsView({
       {sampleOnly ? (
         <div className="mt-5 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm leading-6">
           <strong className="font-medium">Sample answers.</strong> These are stand-ins so you can
-          click through the whole check. Add OpenAI, Perplexity, and Gemini keys to ask the live
-          tools. The score on this page is from the sample, not from a real customer question.
-        </div>
-      ) : null}
-      {mixed ? (
-        <div className="mt-5 rounded-xl border border-border bg-card px-4 py-3 text-sm leading-6">
-          Some tools answered live. Any row marked Sample didn&apos;t have a key, so that answer
-          is a stand-in.
+          click through the whole check. Add a Perplexity key to ask Perplexity for real. The
+          score on this page is from the sample, not from a live answer.
         </div>
       ) : null}
       {paidNotice ? (
@@ -98,8 +91,7 @@ export function ResultsView({
                 ))}
               </ul>
               <p className="text-sm text-muted-foreground">
-                Gemini stands in for Google&apos;s AI Overviews. ChatGPT is OpenAI. Perplexity is
-                its own answer engine.
+                The score is the average of Perplexity&apos;s answers to eight customer questions.
               </p>
             </CardContent>
           </Card>
@@ -267,7 +259,7 @@ export function ResultsView({
               <div className="relative overflow-hidden rounded-xl border border-dashed border-border p-4">
                 <div className="pointer-events-none select-none blur-[3px]">
                   <p className="text-sm">1. What is the best {scan.category} in {scan.city}?</p>
-                  <p className="mt-2 text-sm text-muted-foreground">ChatGPT · Perplexity · Gemini</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Perplexity</p>
                   <p className="mt-3 text-sm">Cumberland {scan.category} · Maple Street {scan.category}</p>
                 </div>
                 <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm font-medium">

@@ -155,8 +155,8 @@ export function GatewayHome({ site }: { site: SiteContent }) {
               <p className="eyebrow">Free tool</p>
               <h2>Free AI visibility check</h2>
               <p>
-                Customers ask ChatGPT, Perplexity, and Google&apos;s AI who to hire. This check
-                asks those questions for your business and shows whether your name comes up.
+                Customers ask AI who to hire. This check asks Perplexity those questions for your
+                business and shows whether your name comes up.
               </p>
               <p>
                 The check is free. A full write-up is $49, and $19 a month watches it for you.

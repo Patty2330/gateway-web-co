@@ -6,15 +6,7 @@ import { anyProviderConfigured, getProviders, type AnswerProvider } from "@/lib/
 import { buildQuestions } from "@/lib/questions";
 import { aggregateCompetitors, pointsFor, visibilityScore } from "@/lib/score";
 import { checkWebsite } from "@/lib/site-check";
-import type {
-  AnswerRecord,
-  ProviderId,
-  Question,
-  ScanInput,
-  ScanMode,
-  ScanPayload,
-  Source,
-} from "@/lib/types";
+import type { AnswerRecord, Question, ScanInput, ScanMode, ScanPayload, Source } from "@/lib/types";
 
 export function buildCacheKey(input: ScanInput, signature: string): string {
   const norm = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -74,7 +66,6 @@ async function askOne(
       category: input.category,
       city: input.city,
       state: input.state,
-      providerId: provider.id as ProviderId,
       questionIndex: question.index,
       seed,
     });

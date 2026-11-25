@@ -1,0 +1,37 @@
+# Render Blueprint: Next.js site plus Postgres.
+# Creating this Blueprint asks for APP_URL, PERPLEXITY_API_KEY, and STRIPE_SECRET_KEY.
+# CRON_SECRET is generated. DATABASE_URL comes from the database below.
+
+databases:
+  - name: gateway-db
+    plan: basic-256mb
+    region: oregon
+    databaseName: gateway
+    user: gateway
+
+services:
+  - type: web
+    name: gateway-web-co
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gateway-db
+          property: connectionString
+      - key: PGSSL
+        value: require
+      - key: APP_URL
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: PERPLEXITY_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

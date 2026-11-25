@@ -134,8 +134,8 @@ export function ScanForm() {
       </Button>
       {pending ? (
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          Writing the questions a customer would ask, then sending them to ChatGPT, Perplexity,
-          and Gemini. A live check can take a minute. A sample check is quicker.
+          Writing eight questions a customer would ask, then sending them to Perplexity. A live
+          check can take a minute. A sample check is quicker.
         </p>
       ) : (
         <button

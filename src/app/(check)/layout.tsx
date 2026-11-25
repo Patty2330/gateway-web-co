@@ -9,7 +9,7 @@ import "../globals.css";
 export const metadata: Metadata = {
   title: "Free AI visibility check · Gateway Web Co",
   description:
-    "See whether ChatGPT, Perplexity, and Google's AI answers recommend your Clarksville business, and what to fix.",
+    "See whether Perplexity recommends your Clarksville business, and what to fix.",
   icons: { icon: "/assets/favicon.svg" },
 };
 

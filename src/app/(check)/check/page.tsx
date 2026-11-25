@@ -11,8 +11,8 @@ export default function CheckPage() {
           When a customer asks AI who to hire, does it say your name?
         </h1>
         <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
-          ChatGPT, Perplexity, and Google&apos;s AI are how a lot of people pick a plumber, a
-          salon, or a diner. This check asks those questions for your business.
+          A lot of people now ask an AI who to hire: a plumber, a salon, or a diner. This check
+          asks Perplexity those questions for your business.
         </p>
         <p className="mt-4 max-w-xl leading-7">
           You get a score and the three fixes that matter most, free. The full report is $49.

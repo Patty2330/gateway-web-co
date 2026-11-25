@@ -31,7 +31,7 @@ Tests cover how answers are read, how the score is calculated, and that the webs
 
 - Keep the marketing page looking like the current site. Change words in `_data/site.yml` when the offer changes. Do not restyle `styles.css` for a new campaign unless Jalen asks.
 - The check sells Gateway Web Co's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The $49 report and $19/month watch stay as they are.
-- Provider adapters stay pluggable. Keys come from the environment, never from the database or the git history.
+- The visibility check uses Perplexity only. Keys come from the environment, never from the database or the git history.
 - Do not add a second component library.
 
 ## Git
@@ -43,11 +43,11 @@ Tests cover how answers are read, how the score is calculated, and that the webs
 
 ## Demo mode
 
-If `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`, and `GEMINI_API_KEY` are missing, the check must still run from the form through the score, the locked report, checkout, and the contact note. Sample answers have to be labeled on the results page so nobody treats them as live. With one or two keys, only those tools are live. The others stay labeled samples.
+If `PERPLEXITY_API_KEY` is missing, the check must still run from the form through the score, the locked report, checkout, and the contact note. Sample answers have to be labeled on the results page so nobody treats them as live. The score uses Perplexity only.
 
 ## Lessons / corrections
 
-<!-- Jalen's later corrections get recorded here as permanent rules. Leave this section in place. -->
+- Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
