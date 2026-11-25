@@ -48,6 +48,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 ## Lessons / corrections
 
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
+- Add DATABASE_URL before PERPLEXITY_API_KEY. The daily cap and saved checks need a persistent database. On Render, turning on the Perplexity key without Postgres leaves rate limits on an ephemeral disk (QA review, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -52,7 +52,7 @@ async function ResultsLoader({
   return (
     <ResultsView
       scan={presentScan(scan)}
-      paidNotice={query.paid === "1" || Boolean(query.session_id && scan.tier !== "free")}
+      paidNotice={query.paid === "1" ? "practice" : query.session_id && scan.tier !== "free" ? "paid" : false}
       cancelNotice={query.checkout === "cancel"}
     />
   );

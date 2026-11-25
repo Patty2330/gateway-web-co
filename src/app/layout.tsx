@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { Fraunces, Outfit } from "next/font/google";
 
 import { PagesBanner } from "@/components/pages-banner";
+import { SampleModeBanner } from "@/components/sample-mode-banner";
 import { isPagesDemo } from "@/lib/pages";
 
 const outfit = Outfit({
@@ -18,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} ${fraunces.variable}`}>
       <body>
-        {isPagesDemo() ? <PagesBanner /> : null}
+        <Suspense fallback={null}>{isPagesDemo() ? <PagesBanner /> : <SampleModeBanner />}</Suspense>
         {children}
       </body>
     </html>

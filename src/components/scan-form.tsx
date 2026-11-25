@@ -13,7 +13,7 @@ import { US_STATES } from "@/lib/states";
 
 const fieldClass = "h-11 bg-card px-3 text-base md:text-base";
 
-export function ScanForm() {
+export function ScanForm({ sampleMode = false }: { sampleMode?: boolean }) {
   const router = useRouter();
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("");
@@ -154,8 +154,9 @@ export function ScanForm() {
       </Button>
       {pending ? (
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          Writing eight questions a customer would ask, then sending them to Perplexity. A live
-          check can take a minute. A sample check is quicker.
+          {sampleMode
+            ? "Sample mode, not live results. This run uses stand-in answers so you can click through the check."
+            : "Writing eight questions a customer would ask, then sending them to Perplexity. A live check can take a minute."}
         </p>
       ) : (
         <button

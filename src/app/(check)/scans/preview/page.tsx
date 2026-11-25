@@ -1,25 +1,27 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { ResultsView } from "@/components/results-view";
-import { loadPagesScan } from "@/lib/pages-store";
+import { loadPagesScan, subscribePagesScan } from "@/lib/pages-store";
 import { presentScan } from "@/lib/present";
-import type { ScanRecord } from "@/lib/types";
+
+function useHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 function PreviewBody() {
   const query = useSearchParams();
-  const [record, setRecord] = useState<ScanRecord | null>(null);
-  const [ready, setReady] = useState(false);
+  const hydrated = useHydrated();
+  const record = useSyncExternalStore(subscribePagesScan, loadPagesScan, () => null);
 
-  useEffect(() => {
-    setRecord(loadPagesScan());
-    setReady(true);
-  }, [query]);
-
-  if (!ready) {
+  if (!hydrated) {
     return (
       <main className="mx-auto w-full max-w-6xl px-5 py-16">
         <p className="font-serif text-3xl">Pulling the check…</p>
@@ -44,7 +46,7 @@ function PreviewBody() {
   return (
     <ResultsView
       scan={presentScan(record)}
-      paidNotice={query.get("paid") === "1"}
+      paidNotice={query.get("paid") === "1" ? "practice" : false}
       cancelNotice={false}
     />
   );

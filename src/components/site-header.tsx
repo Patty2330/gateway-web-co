@@ -1,11 +1,13 @@
 import Link from "next/link";
 
 import { isPagesDemo } from "@/lib/pages";
+import { anyProviderConfigured } from "@/lib/providers";
 
-export function SiteHeader() {
+export function SiteHeader({ offset }: { offset?: boolean } = {}) {
+  const raise = offset ?? (isPagesDemo() || !anyProviderConfigured());
   return (
     <header
-      className={`sticky z-20 border-b border-border/80 bg-background/90 backdrop-blur ${isPagesDemo() ? "top-11" : "top-0"}`}
+      className={`sticky z-20 border-b border-border/80 bg-background/90 backdrop-blur ${raise ? "top-11" : "top-0"}`}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3">
         <Link href="/" className="flex min-w-0 items-center gap-2">

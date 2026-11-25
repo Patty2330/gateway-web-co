@@ -1,13 +1,55 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import net from "node:net";
 
+const DEFAULT_SALT = "dev-salt-change-me";
+
+export class RateLimitConfigError extends Error {
+  constructor() {
+    super("RATE_LIMIT_SALT is not set for production.");
+    this.name = "RateLimitConfigError";
+  }
+}
+
+export function rateLimitSaltConfigured(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  const salt = process.env.RATE_LIMIT_SALT;
+  return Boolean(salt && salt !== DEFAULT_SALT && salt !== "change-me");
+}
+
+function firstValidIp(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (net.isIP(trimmed)) return trimmed;
+  return null;
+}
+
+/**
+ * Client IP for rate limits. Client-supplied hops on the left of
+ * X-Forwarded-For are ignored.
+ *
+ * When Cloudflare is in front, CF-Connecting-IP is the visitor address the
+ * edge sets. Otherwise Render appends the TCP peer at the right of
+ * X-Forwarded-For, so the right-most hop is the platform-trusted client.
+ */
 export function clientIp(request: Request): string {
+  const cloudflare = firstValidIp(request.headers.get("cf-connecting-ip"));
+  if (cloudflare) return cloudflare;
+
   const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim() || "local";
-  return request.headers.get("x-real-ip") || "local";
+  if (forwarded) {
+    const hops = forwarded
+      .split(",")
+      .map((part) => part.trim())
+      .filter((part) => net.isIP(part));
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+
+  return firstValidIp(request.headers.get("x-real-ip")) || "local";
 }
 
 export function hashIp(ip: string): string {
-  const salt = process.env.RATE_LIMIT_SALT || "dev-salt-change-me";
+  if (!rateLimitSaltConfigured()) throw new RateLimitConfigError();
+  const salt = process.env.RATE_LIMIT_SALT || DEFAULT_SALT;
   return createHash("sha256").update(`${salt}|${ip}`).digest("hex").slice(0, 32);
 }
 

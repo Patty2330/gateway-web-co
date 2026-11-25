@@ -4,15 +4,15 @@ import { z } from "zod";
 
 import { getStore } from "@/lib/db";
 import { getEmailSender } from "@/lib/email";
-import { clientIp, hashIp } from "@/lib/request";
+import { RateLimitConfigError, clientIp, hashIp } from "@/lib/request";
 
 const schema = z
   .object({
-    name: z.string().trim().min(2, "Add your name.").max(80),
-    email: z.string().trim().max(120).optional(),
-    phone: z.string().trim().max(40).optional(),
-    businessName: z.string().trim().max(80).optional(),
-    message: z.string().trim().min(5, "Add a short note.").max(2000),
+    name: z.string().trim().min(2, "Add your name.").max(80, "Keep your name under 80 characters."),
+    email: z.string().trim().max(120, "Keep the email under 120 characters.").optional(),
+    phone: z.string().trim().max(40, "Keep the phone number under 40 characters.").optional(),
+    businessName: z.string().trim().max(80, "Keep the business name under 80 characters.").optional(),
+    message: z.string().trim().min(5, "Add a short note.").max(2000, "Keep the note under 2,000 characters."),
     scanId: z.string().uuid().optional().or(z.literal("")),
   })
   .superRefine((value, ctx) => {
@@ -42,8 +42,20 @@ export async function POST(request: Request) {
   }
 
   const store = await getStore();
+  let ipHash: string;
+  try {
+    ipHash = hashIp(clientIp(request));
+  } catch (error) {
+    if (error instanceof RateLimitConfigError) {
+      return Response.json(
+        { error: "This install isn't ready for new notes. Set RATE_LIMIT_SALT on the server." },
+        { status: 503 },
+      );
+    }
+    throw error;
+  }
   const count = await store.consumeRateLimit(
-    `${hashIp(clientIp(request))}:lead`,
+    `${ipHash}:lead`,
     new Date().toISOString().slice(0, 10),
   );
   if (count > 10) {

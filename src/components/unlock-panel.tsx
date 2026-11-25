@@ -6,27 +6,27 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { storeCheckoutEmail } from "@/lib/checkout-client";
 import { isPagesDemo } from "@/lib/pages";
 
 export function UnlockPanel({
   scanId,
-  email,
   tier,
 }: {
   scanId: string;
-  email: string | null;
   tier: "free" | "report" | "monitor";
 }) {
   const router = useRouter();
-  const [address, setAddress] = useState(email || "");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState<"report" | "monitor" | null>(null);
 
   async function start(plan: "report" | "monitor") {
     setError("");
     setPending(plan);
+    storeCheckoutEmail(address);
     if (isPagesDemo()) {
-      const params = new URLSearchParams({ plan, email: address });
+      const params = new URLSearchParams({ plan });
       router.push(`/checkout/demo?${params.toString()}`);
       return;
     }

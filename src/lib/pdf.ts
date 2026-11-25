@@ -2,6 +2,23 @@ import PDFDocument from "pdfkit";
 
 import type { PublicScan } from "@/lib/present";
 
+const REPORT_ZONE = "America/Chicago";
+
+export function formatReportTime(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: REPORT_ZONE,
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZoneName: "short",
+  }).format(date);
+}
+
+
 function writeLine(doc: PDFKit.PDFDocument, text: string, options?: PDFKit.Mixins.TextOptions) {
   doc.text(text, options);
 }
@@ -28,7 +45,7 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
       doc,
       `${scan.category} in ${scan.city}, ${scan.state}${scan.websiteUrl ? `  ·  ${scan.websiteUrl}` : ""}`,
     );
-    writeLine(doc, `Checked ${new Date(scan.createdAt).toLocaleString("en-US")}`);
+    writeLine(doc, `Checked ${formatReportTime(scan.createdAt)}`);
     doc.moveDown(0.6);
 
     doc.font("Times-Bold").fontSize(28).fillColor("#8d2c2c");
@@ -39,14 +56,16 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
     writeLine(doc, scan.summary);
     writeLine(doc, scan.hint);
 
-    if (scan.demoAnswerCount > 0) {
-      doc.moveDown(0.4);
-      doc.fillColor("#8d2c2c").font("Times-Bold").fontSize(11);
+    if (scan.mode === "demo" || scan.demoAnswerCount > 0) {
+      doc.moveDown(0.5);
+      doc.fillColor("#8d2c2c").font("Times-Bold").fontSize(16);
+      writeLine(doc, "SAMPLE REPORT");
+      doc.font("Times-Roman").fontSize(11);
       writeLine(
         doc,
-        "Sample answers are included. Connect API keys before you treat this as a live result.",
+        "This is a sample report, not a live Perplexity result. Do not treat the score as real until a Perplexity key is connected.",
       );
-      doc.fillColor("#231c17").font("Times-Roman");
+      doc.fillColor("#231c17");
     }
 
     doc.moveDown(0.8);

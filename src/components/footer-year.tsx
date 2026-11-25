@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// Stable prerender/hydration value. After hydration the client shows the real year.
+const SERVER_YEAR = "2026";
+
+function currentYear() {
+  return String(new Date().getFullYear());
+}
 
 export function FooterYear() {
-  const [year, setYear] = useState("2026");
-  useEffect(() => {
-    setYear(String(new Date().getFullYear()));
-  }, []);
+  const year = useSyncExternalStore(
+    () => () => {},
+    currentYear,
+    () => SERVER_YEAR,
+  );
   return <span>{year}</span>;
 }

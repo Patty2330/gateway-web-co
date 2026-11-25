@@ -124,3 +124,6 @@ details[open] summary::after{content:"–"}details p{color:var(--muted);margin:0
 .contact a{color:var(--clay)}
 
 .price-card .amount{font-size:1.45rem;font-weight:800;color:var(--red);margin:0 0 .5em;letter-spacing:-.02em}
+
+/* Keep the marketing nav under the sample-mode banner when it is showing. */
+body:has([data-sample-banner]) .nav{top:44px}
