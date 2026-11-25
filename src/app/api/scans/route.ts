@@ -6,7 +6,7 @@ import { scanFormSchema } from "@/lib/schemas";
 import { buildCacheKey, executeScan, scanMode } from "@/lib/engine";
 import { providerSignature } from "@/lib/providers";
 import { scanIsComplete } from "@/lib/scan-complete";
-import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, dailyLimitReachedMessage, hashIp, rateLimitDay, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
+import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, dailyLimitReachedMessage, hashIp, logScanRateLimitKey, rateLimitDay, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
 import { normalizeWebsite } from "@/lib/website-url";
 import type { ScanRecord } from "@/lib/types";
 
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+  logScanRateLimitKey(ipHash);
   const since = new Date(Date.now() - cacheHours() * 60 * 60 * 1000).toISOString();
   const store = await getStore();
   const own = await store.findRecentByIp(ipHash, cacheKey, since);

@@ -125,4 +125,36 @@ describe("POST /api/scans", () => {
     expect(dailyLimitReachedMessage()).toMatch(/don't count toward that limit/);
     expect(await store.consumeRateLimit(hashIp("local"), day)).toBe(dailyLimit() + 2);
   });
+
+  it("logs a short rate-limit key and never the raw IP or the salt", async () => {
+    executeScan.mockResolvedValue(completePayload());
+    const ip = "198.51.100.20";
+    const salt = process.env.RATE_LIMIT_SALT || "dev-salt-change-me";
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, "info").mockImplementation((message, ...rest) => {
+      lines.push([message, ...rest].map(String).join(" "));
+    });
+    const { POST } = await import("@/app/api/scans/route");
+    const response = await POST(
+      new Request("http://127.0.0.1/api/scans", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": ip,
+        },
+        body: JSON.stringify({
+          businessName: "Log Shop",
+          category: "restaurant",
+          city: "Clarksville",
+          state: "TN",
+        }),
+      }),
+    );
+    spy.mockRestore();
+    expect(response.status).toBe(200);
+    const joined = lines.join("\n");
+    expect(joined).toMatch(/scan rate-limit key [0-9a-f]{8}/);
+    expect(joined).not.toContain(ip);
+    expect(joined).not.toContain(salt);
+  });
 });

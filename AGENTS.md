@@ -53,13 +53,17 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
 - Add DATABASE_URL before PERPLEXITY_API_KEY. The daily cap and saved checks need a persistent database. On Render, turning on the Perplexity key without Postgres leaves rate limits on an ephemeral disk (QA review, Nov 25 2026).
 - Cap Perplexity concurrency at 2 and retry 429s and brief 5xx errors with backoff. A live check has a hard 40-second wall-clock cap: abort in-flight Perplexity requests at the deadline and return "The check didn't finish" if fewer than 6 of 8 answers are back. Never score or cache a scan with fewer than 6 of 8 answers. Any non-complete scan must be rejected by checkout (409) and must not consume the daily rate limit, aside from a small cap on unfinished retries. /api/health reports the database type as postgres or sqlite, without the URL (QA live-scan review, Nov 25 2026).
-- Never trust client-sent IP headers (CF-Connecting-IP, left-most X-Forwarded-For) for rate limits unless an env flag says the proxy sets them. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
+- On Render, trust CF-Connecting-IP by default (RENDER=true). Cloudflare rejects a client-supplied value on public traffic (403, error 1000). Do not use the right-most X-Forwarded-For hop on Render; that is a proxy, and every visitor would share one bucket. X-Forwarded-For is only for local/dev. Only private-network callers can fake CF-Connecting-IP. Do not trust X-Real-IP. (Code Reviewer, PR #7, Nov 25 2026).
+- Check proxy-header behavior against the real host's docs or a live echo before changing IP trust. (Code Reviewer, PR #7, Nov 25 2026).
 - Keep input typed on /check before the page finishes loading. Do not remount the form in a Suspense fallback and wipe the business name. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
 - The "5 a day" / "enough free checks for today" message must mention that unfinished checks don't count. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
 - The Sample mode banner must not cover the header on a phone. Keep the banner in document flow, not sticky over the nav. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
 - Reset the daily free-check limit at midnight America/Chicago, not UTC. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
 - Retry sleeps must honor abort, so a cancelled check does not keep waiting on Retry-After. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
 - Reject website hosts like _.com and port 0. Underscores are allowed only in a label that also has a letter or digit, such as joes_pizza.com. (Code Reviewer, PR #5 follow-up, Nov 25 2026).
+- Count IPv6 rate limits by the /64 prefix, and treat IPv4-mapped addresses (::ffff:1.2.3.4) as IPv4, so rotating the interface id cannot bypass the daily cap. (Web Tester, PR #7 follow-up, Nov 25 2026).
+- Unfinished report PDF tests must reject "null / 100" and "null/100", not only 0/100. (Code Reviewer, PR #6/#7 follow-up, Nov 25 2026).
+- Log only a short rate-limit bucket hash prefix on each scan request. Never log the raw client IP or RATE_LIMIT_SALT. (Web Chief, PR #7 follow-up, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
