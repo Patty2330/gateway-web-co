@@ -76,7 +76,11 @@ export function parseIpv6Hextets(ip: string): number[] | null {
   if (maybeV4.includes(".")) {
     ipv4Tail = parseIpv4Octets(maybeV4);
     if (!ipv4Tail) return null;
-    raw = raw.slice(0, lastColon);
+    // Keep '::' intact when the IPv4 tail sits right after the compression
+    // marker. Slicing off that last colon would turn '64:ff9b::1.2.3.4'
+    // into '64:ff9b:' and '::1.2.3.4' into ':', so /64 grouping would fail.
+    const ipv4AfterCompression = lastColon > 0 && raw[lastColon - 1] === ":";
+    raw = raw.slice(0, ipv4AfterCompression ? lastColon + 1 : lastColon);
   }
 
   const sides = raw.split("::");
@@ -180,6 +184,35 @@ export function trustCfConnectingIp(): boolean {
   return runningOnRender();
 }
 
+export const MISSING_CF_CONNECTING_IP_WARNING =
+  "CF-Connecting-IP was missing on Render; using the shared local rate-limit bucket.";
+
+export const MISSING_CF_WARNING_INTERVAL_MS = 60_000;
+
+let lastMissingCfWarningAt = 0;
+
+export function resetMissingCfConnectingIpWarning(): void {
+  lastMissingCfWarningAt = 0;
+}
+
+/** Warn when Render falls back to the shared local bucket. Never includes an IP. */
+export function logMissingCfConnectingIp(
+  write: (line: string) => void = (line) => {
+    console.warn(line);
+  },
+  now = Date.now(),
+): boolean {
+  if (
+    lastMissingCfWarningAt !== 0 &&
+    now - lastMissingCfWarningAt < MISSING_CF_WARNING_INTERVAL_MS
+  ) {
+    return false;
+  }
+  lastMissingCfWarningAt = now;
+  write(MISSING_CF_CONNECTING_IP_WARNING);
+  return true;
+}
+
 /**
  * Client IP for rate limits.
  *
@@ -192,6 +225,9 @@ export function clientIp(request: Request): string {
   if (trustCfConnectingIp()) {
     const cloudflare = firstValidIp(request.headers.get("cf-connecting-ip"));
     if (cloudflare) return cloudflare;
+    if (runningOnRender()) {
+      logMissingCfConnectingIp();
+    }
   }
 
   if (!runningOnRender()) {
@@ -254,6 +290,10 @@ export function rateLimitDay(now: Date = new Date()): string {
 
 export function dailyLimitReachedMessage(limit = dailyLimit()): string {
   return `That's enough free checks for today. Each connection gets ${limit} a day, so the AI bills stay small. Checks that don't finish don't count toward that limit.`;
+}
+
+export function leadsDailyLimitReachedMessage(): string {
+  return "That's enough notes for today. Two Forks Studio will see the ones you already sent.";
 }
 
 /** How many unfinished attempts can be refunded toward the daily cap. */
