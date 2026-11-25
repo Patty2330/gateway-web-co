@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
+import { isPagesDemo, sitePath } from "@/lib/pages";
+
 export function GatewayNav({ businessName, logo }: { businessName: string; logo?: string }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const [first, rest] = businessName.split(/ (?=Web Co$)/);
 
   return (
-    <header className="nav" id="top">
+    <header className="nav" id="top" style={isPagesDemo() ? { top: 44 } : undefined}>
       <div className="wrap nav-inner">
         <a className="brand" href="#top" aria-label={`${businessName} home`}>
           {logo ? (
@@ -48,7 +50,7 @@ export function GatewayNav({ businessName, logo }: { businessName: string; logo?
           <a href="#how" onClick={close}>How it works</a>
           <a href="#work" onClick={close}>Concepts</a>
           <a href="#faq" onClick={close}>FAQ</a>
-          <a href="/check" onClick={close}>Free AI check</a>
+          <a href={sitePath("/check")} onClick={close}>Free AI check</a>
           <a className="btn btn-sm" href="#contact" onClick={close}>Get a quote</a>
         </nav>
       </div>

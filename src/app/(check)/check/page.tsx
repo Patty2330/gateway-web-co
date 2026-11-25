@@ -1,6 +1,7 @@
 import { ScanForm } from "@/components/scan-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { gateway } from "@/lib/gateway";
+import { sitePath } from "@/lib/pages";
 
 export default function CheckPage() {
   return (
@@ -20,11 +21,11 @@ export default function CheckPage() {
           build it. {gateway.buildPitch}
         </p>
         <p className="mt-4 text-sm">
-          <a className="underline underline-offset-4" href="/">
+          <a className="underline underline-offset-4" href={sitePath("/")}>
             Back to {gateway.name}
           </a>
           {" · "}
-          <a className="underline underline-offset-4" href="/#pricing">
+          <a className="underline underline-offset-4" href={sitePath("/#pricing")}>
             Website pricing
           </a>
         </p>

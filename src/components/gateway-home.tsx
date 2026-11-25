@@ -1,4 +1,5 @@
 import { FooterYear } from "@/components/footer-year";
+import { sitePath } from "@/lib/pages";
 import { GatewayContactForm } from "@/components/gateway-contact-form";
 import { GatewayNav } from "@/components/gateway-nav";
 import type { SiteContent } from "@/lib/site";
@@ -163,7 +164,7 @@ export function GatewayHome({ site }: { site: SiteContent }) {
                 If the site itself is the problem, Gateway can build it.
               </p>
               <div className="cta-row">
-                <a className="btn" href="/check">Run the free check</a>
+                <a className="btn" href={sitePath("/check")}>Run the free check</a>
                 <a className="btn btn-ghost" href="#pricing">See website pricing</a>
               </div>
             </div>

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { isPagesDemo } from "@/lib/pages";
+
 export function GatewayContactForm({
   button,
   errorMessage,
@@ -24,6 +26,12 @@ export function GatewayContactForm({
     });
     if (!ok) {
       setStatus(errorMessage);
+      return;
+    }
+
+    if (isPagesDemo()) {
+      setStatus("Thanks. This demo preview does not send the note. Nothing was saved.");
+      form.reset();
       return;
     }
 

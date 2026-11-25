@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isPagesDemo } from "@/lib/pages";
 
 export function UnlockPanel({
   scanId,
@@ -24,6 +25,11 @@ export function UnlockPanel({
   async function start(plan: "report" | "monitor") {
     setError("");
     setPending(plan);
+    if (isPagesDemo()) {
+      const params = new URLSearchParams({ plan, email: address });
+      router.push(`/checkout/demo?${params.toString()}`);
+      return;
+    }
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",

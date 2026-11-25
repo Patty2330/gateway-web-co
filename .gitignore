@@ -5,6 +5,8 @@ _site/
 
 node_modules/
 .next/
+out/
+.pages-build-hide/
 data/
 .env*
 !.env.example

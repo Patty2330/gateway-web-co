@@ -1,8 +1,12 @@
 import Link from "next/link";
 
+import { isPagesDemo } from "@/lib/pages";
+
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur">
+    <header
+      className={`sticky z-20 border-b border-border/80 bg-background/90 backdrop-blur ${isPagesDemo() ? "top-11" : "top-0"}`}
+    >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3">
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">

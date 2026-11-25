@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { isPagesDemo } from "@/lib/pages";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +33,11 @@ export function LeadForm({
     event.preventDefault();
     setPending(true);
     setError("");
+    if (isPagesDemo()) {
+      setDone(true);
+      setPending(false);
+      return;
+    }
     try {
       const response = await fetch("/api/leads", {
         method: "POST",
@@ -63,8 +69,9 @@ export function LeadForm({
       <div className="rounded-xl bg-secondary px-4 py-5 text-secondary-foreground">
         <p className="font-serif text-2xl">Got it.</p>
         <p className="mt-2 text-sm leading-6">
-          Jalen will see your note. Gateway Web Co builds the website. The first 10 local
-          clients are $500, and you pay only when you&apos;re 100% happy.
+          {isPagesDemo()
+            ? "This demo preview does not send the note. Nothing was saved."
+            : "Jalen will see your note. Gateway Web Co builds the website. The first 10 local clients are $500, and you pay only when you're 100% happy."}
         </p>
       </div>
     );

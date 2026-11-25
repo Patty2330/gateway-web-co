@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { demoScanRecord } from "@/lib/demo-scan";
+import { isPagesDemo } from "@/lib/pages";
+import { savePagesScan } from "@/lib/pages-store";
 import { US_STATES } from "@/lib/states";
 
 const fieldClass = "h-11 bg-card px-3 text-base md:text-base";
@@ -33,6 +36,23 @@ export function ScanForm() {
     event.preventDefault();
     setError("");
     setPending(true);
+    if (isPagesDemo()) {
+      const website = websiteUrl.trim();
+      savePagesScan(
+        demoScanRecord(
+          {
+            businessName: businessName.trim(),
+            category: category.trim(),
+            city: city.trim(),
+            state,
+            websiteUrl: website ? (website.startsWith("http") ? website : `https://${website}`) : null,
+          },
+          crypto.randomUUID(),
+        ),
+      );
+      router.push("/scans/preview");
+      return;
+    }
     try {
       const response = await fetch("/api/scans", {
         method: "POST",

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { isPagesDemo } from "@/lib/pages";
+import { unlockPagesScan } from "@/lib/pages-store";
 
 export function DemoCheckoutForm({
   scanId,
@@ -24,6 +26,16 @@ export function DemoCheckoutForm({
   async function pay() {
     setPending(true);
     setError("");
+    if (isPagesDemo()) {
+      const saved = unlockPagesScan(plan, email);
+      if (!saved) {
+        setError("Run a check first. This preview keeps the result in your browser.");
+        setPending(false);
+        return;
+      }
+      router.push("/scans/preview?paid=1");
+      return;
+    }
     try {
       const response = await fetch("/api/checkout/simulate", {
         method: "POST",
@@ -60,8 +72,9 @@ export function DemoCheckoutForm({
         </div>
       </dl>
       <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-        Test card when Stripe is connected: 4242 4242 4242 4242, any future date, any CVC.
-        This screen is the stand-in because the Stripe secret key is not set.
+        {isPagesDemo()
+          ? "This preview does not charge a card. Completing this step unlocks the sample report in your browser."
+          : "Test card when Stripe is connected: 4242 4242 4242 4242, any future date, any CVC. This screen is the stand-in because the Stripe secret key is not set."}
       </p>
       {error ? (
         <p role="alert" className="text-sm text-primary">

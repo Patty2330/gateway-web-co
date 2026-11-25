@@ -32,6 +32,14 @@ npm test
 
 The quote form and the "get it fixed" form on a report both save a lead in the database. Nothing is emailed until you connect a mail provider. See `src/lib/email.ts`.
 
+## GitHub Pages demo
+
+https://patty2330.github.io/gateway-web-co/ is a **demo preview**, not the live app. It is a static export. The check, the score, the competitors, the fix list, and the sample report all run in the browser with sample answers. There is no Perplexity call, no database, and no Stripe charge. A red **Demo preview** banner stays at the top.
+
+`npm run build` is the Render build and is unchanged. `npm run build:pages` is the Pages build: static export, site path `/gateway-web-co`, and sample mode forced. API routes are left out of that build only.
+
+Pushing to `main` runs `.github/workflows/pages.yml`, which publishes the `out` folder. You can also run that workflow by hand.
+
 ## Sample mode and live mode
 
 Leave `PERPLEXITY_API_KEY` blank and every answer is a labeled sample. Cost is $0. Set the key and the same eight questions go to Perplexity. That is the only engine.

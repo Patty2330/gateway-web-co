@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { DownloadSummaryButton } from "@/components/download-summary";
 import { LeadForm } from "@/components/lead-form";
 import { ScoreRing } from "@/components/score-ring";
 import { UnlockPanel } from "@/components/unlock-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isPagesDemo } from "@/lib/pages";
 import type { PublicScan } from "@/lib/present";
 import type { AnswerRecord } from "@/lib/types";
 
@@ -122,17 +124,22 @@ export function ResultsView({
         <section className="mt-10 grid gap-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="font-serif text-3xl">Full report</h2>
-            <a
-              href={`/api/scans/${scan.id}/pdf`}
-              className="inline-flex h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
-            >
-              Download PDF
-            </a>
+            {isPagesDemo() ? (
+              <DownloadSummaryButton scan={scan} />
+            ) : (
+              <a
+                href={`/api/scans/${scan.id}/pdf`}
+                className="inline-flex h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                Download PDF
+              </a>
+            )}
           </div>
           {scan.tier === "monitor" && scan.nextRunAt ? (
             <p className="text-sm text-muted-foreground">
-              Monthly watch is on. Next check {new Date(scan.nextRunAt).toLocaleDateString("en-US")}.
-              Email sending in this build is saved to the database until you connect a mail provider.
+              {isPagesDemo()
+                ? "Monthly watch is shown here as a sample. This preview does not email you or run the check again."
+                : `Monthly watch is on. Next check ${new Date(scan.nextRunAt).toLocaleDateString("en-US")}. Email sending in this build is saved to the database until you connect a mail provider.`}
             </p>
           ) : null}
 
