@@ -1,5 +1,6 @@
 # Render Blueprint: Next.js site plus Postgres.
-# Creating this Blueprint asks for APP_URL, PERPLEXITY_API_KEY, and STRIPE_SECRET_KEY.
+# Creating this Blueprint asks for APP_URL, PERPLEXITY_API_KEY, STRIPE_SECRET_KEY,
+# and the optional Resend pair. CRON_SECRET is generated. DATABASE_URL comes from the database below.
 # CRON_SECRET is generated. DATABASE_URL comes from the database below.
 
 databases:
@@ -34,4 +35,8 @@ services:
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
         sync: false

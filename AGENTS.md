@@ -32,6 +32,7 @@ Tests cover how answers are read, how the score is calculated, and that the webs
 - Keep the marketing page looking like the current site. Change words in `_data/site.yml` when the offer changes. Do not restyle `styles.css` for a new campaign unless Jalen asks.
 - The check sells Gateway Web Co's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The $49 report and $19/month watch stay as they are.
 - The visibility check uses Perplexity only. Keys come from the environment, never from the database or the git history.
+- Email stays in the outbox unless both `RESEND_API_KEY` and `EMAIL_FROM` are set. Then send through Resend and record sent or failed. A send failure must not crash the request. The Pages demo has no API routes and must not send mail.
 - Do not add a second component library.
 
 ## Git
