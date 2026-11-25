@@ -3,6 +3,8 @@ import net from "node:net";
 
 const DEFAULT_SALT = "dev-salt-change-me";
 
+export const RATE_LIMIT_TIME_ZONE = "America/Chicago";
+
 export class RateLimitConfigError extends Error {
   constructor() {
     super("RATE_LIMIT_SALT is not set for production.");
@@ -23,17 +25,27 @@ function firstValidIp(value: string | null): string | null {
   return null;
 }
 
+/** Cloudflare's visitor IP is only safe when the edge actually sets this header. */
+export function trustCfConnectingIp(): boolean {
+  return process.env.TRUST_CF_CONNECTING_IP === "true";
+}
+
 /**
- * Client IP for rate limits. Client-supplied hops on the left of
- * X-Forwarded-For are ignored.
+ * Client IP for rate limits.
  *
- * When Cloudflare is in front, CF-Connecting-IP is the visitor address the
- * edge sets. Otherwise Render appends the TCP peer at the right of
- * X-Forwarded-For, so the right-most hop is the platform-trusted client.
+ * CF-Connecting-IP is ignored unless TRUST_CF_CONNECTING_IP=true, because a
+ * caller can send that header and bypass the daily cap when Cloudflare is not
+ * in front (or when a request never passed through it).
+ *
+ * Render keeps any client-supplied X-Forwarded-For values and appends the TCP
+ * peer at the right, so the right-most valid hop is the platform-trusted
+ * client. Left-most hops are client-controlled and must not be used.
  */
 export function clientIp(request: Request): string {
-  const cloudflare = firstValidIp(request.headers.get("cf-connecting-ip"));
-  if (cloudflare) return cloudflare;
+  if (trustCfConnectingIp()) {
+    const cloudflare = firstValidIp(request.headers.get("cf-connecting-ip"));
+    if (cloudflare) return cloudflare;
+  }
 
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
@@ -71,6 +83,27 @@ export function safeEqual(left: string, right: string): boolean {
 export function dailyLimit(): number {
   const parsed = Number(process.env.RATE_LIMIT_PER_DAY || 5);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+}
+
+/** Calendar day for the free-check cap, at midnight America/Chicago, not UTC. */
+export function rateLimitDay(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: RATE_LIMIT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) {
+    throw new Error("Could not work out today's date in America/Chicago.");
+  }
+  return `${year}-${month}-${day}`;
+}
+
+export function dailyLimitReachedMessage(limit = dailyLimit()): string {
+  return `That's enough free checks for today. Each connection gets ${limit} a day, so the AI bills stay small. Checks that don't finish don't count toward that limit.`;
 }
 
 /** How many unfinished attempts can be refunded toward the daily cap. */

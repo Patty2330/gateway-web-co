@@ -13,8 +13,9 @@ export function isValidHostname(host: string): boolean {
   const labels = hostname.split(".");
   if (labels.length < 2) return false;
   // Allow underscores so names like joes_pizza.com are not rejected.
+  // A label still needs a letter or digit, so "_" or "_.com" is not a host.
   const labelRe = /^(?!-)[a-z0-9_-]{1,63}(?<!-)$/;
-  return labels.every((label) => labelRe.test(label));
+  return labels.every((label) => labelRe.test(label) && /[a-z0-9]/.test(label));
 }
 
 /** host:port or [ipv6]:port, with an optional path, query, or hash. */
@@ -61,6 +62,13 @@ export function normalizeWebsite(raw: string | undefined): string | null {
   }
   if (!url.hostname || !isValidHostname(url.hostname)) {
     throw new Error("That website address doesn't look right.");
+  }
+  const port = url.port;
+  if (port) {
+    const portNumber = Number(port);
+    if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
+      throw new Error("That website address doesn't look right.");
+    }
   }
   const hostname = stripHostname(url.hostname);
   if (hostname !== url.hostname) {

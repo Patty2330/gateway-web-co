@@ -6,7 +6,7 @@ import { getStore } from "@/lib/db";
 import { zodErrorMessage } from "@/lib/form-error";
 import { getEmailSender } from "@/lib/email";
 import { leadEmailSubject } from "@/lib/gateway";
-import { RateLimitConfigError, clientIp, hashIp } from "@/lib/request";
+import { RateLimitConfigError, clientIp, hashIp, rateLimitDay } from "@/lib/request";
 
 const schema = z
   .object({
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   }
   const count = await store.consumeRateLimit(
     `${ipHash}:lead`,
-    new Date().toISOString().slice(0, 10),
+    rateLimitDay(),
   );
   if (count > 10) {
     return Response.json(

@@ -47,4 +47,14 @@ describe("normalizeWebsite", () => {
     expect(normalizeWebsite("[::1]")).toBe("https://[::1]/");
     expect(normalizeWebsite("http://[::1]/")).toBe("http://[::1]/");
   });
+
+  it("rejects underscore-only labels and port 0", () => {
+    expect(() => normalizeWebsite("_.com")).toThrow(/doesn't look right/);
+    expect(() => normalizeWebsite("https://_.com/")).toThrow(/doesn't look right/);
+    expect(() => normalizeWebsite("example.com:0")).toThrow(/doesn't look right/);
+    expect(() => normalizeWebsite("https://example.com:0/")).toThrow(/doesn't look right/);
+    expect(() => normalizeWebsite("[::1]:0")).toThrow(/doesn't look right/);
+    expect(normalizeWebsite("joes_pizza.com")).toBe("https://joes_pizza.com/");
+    expect(normalizeWebsite("example.com:8080")).toBe("https://example.com:8080/");
+  });
 });

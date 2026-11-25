@@ -6,7 +6,7 @@ import { scanFormSchema } from "@/lib/schemas";
 import { buildCacheKey, executeScan, scanMode } from "@/lib/engine";
 import { providerSignature } from "@/lib/providers";
 import { scanIsComplete } from "@/lib/scan-complete";
-import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, hashIp, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
+import { RateLimitConfigError, cacheHours, clientIp, dailyLimit, dailyLimitReachedMessage, hashIp, rateLimitDay, shouldRefundUnfinishedAttempt, unfinishedRateKey } from "@/lib/request";
 import { normalizeWebsite } from "@/lib/website-url";
 import type { ScanRecord } from "@/lib/types";
 
@@ -62,12 +62,12 @@ export async function POST(request: Request) {
   const own = await store.findRecentByIp(ipHash, cacheKey, since);
   if (own) return Response.json({ id: own.id, cached: true });
 
-  const day = new Date().toISOString().slice(0, 10);
+  const day = rateLimitDay();
   const count = await store.consumeRateLimit(ipHash, day);
   if (count > dailyLimit()) {
     return Response.json(
       {
-        error: `That's enough free checks for today. Each connection gets ${dailyLimit()} a day, so the AI bills stay small.`,
+        error: dailyLimitReachedMessage(),
       },
       { status: 429 },
     );

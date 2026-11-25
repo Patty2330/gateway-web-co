@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createStore } from "@/lib/db";
-import { dailyLimit, hashIp, unfinishedRateKey } from "@/lib/request";
+import { dailyLimit, dailyLimitReachedMessage, hashIp, rateLimitDay, unfinishedRateKey } from "@/lib/request";
 import type { ScanPayload } from "@/lib/types";
 
 let store: Awaited<ReturnType<typeof createStore>>;
@@ -92,7 +92,7 @@ describe("POST /api/scans", () => {
   it("refunds the daily cap for unfinished checks, then stops refunding after the unfinished retry cap", async () => {
     executeScan.mockResolvedValue(unfinishedPayload());
     const ip = hashIp("local");
-    const day = new Date().toISOString().slice(0, 10);
+    const day = rateLimitDay();
     const cap = dailyLimit();
 
     for (let index = 0; index < cap; index++) {
@@ -114,13 +114,15 @@ describe("POST /api/scans", () => {
 
   it("still counts a finished check toward the daily cap", async () => {
     executeScan.mockResolvedValue(completePayload());
-    const day = new Date().toISOString().slice(0, 10);
+    const day = rateLimitDay();
     for (let index = 0; index < dailyLimit(); index++) {
       const response = await postScan(`Finished Shop ${index}`);
       expect(response.status).toBe(200);
     }
     const blocked = await postScan("Finished Overflow");
     expect(blocked.status).toBe(429);
+    expect(await blocked.json()).toEqual({ error: dailyLimitReachedMessage() });
+    expect(dailyLimitReachedMessage()).toMatch(/don't count toward that limit/);
     expect(await store.consumeRateLimit(hashIp("local"), day)).toBe(dailyLimit() + 2);
   });
 });
