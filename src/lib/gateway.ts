@@ -8,3 +8,7 @@ export const gateway = {
   buildPitch:
     "Two Forks Studio builds the website. The first 10 local clients are $500, and you pay only when you're 100% happy.",
 };
+
+export function leadEmailSubject(name: string): string {
+  return `New ${gateway.name} note from ${name}`;
+}
