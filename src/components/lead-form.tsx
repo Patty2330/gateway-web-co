@@ -3,10 +3,11 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { isPagesDemo } from "@/lib/pages";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { gateway } from "@/lib/gateway";
+import { isPagesDemo } from "@/lib/pages";
 
 const fieldClass = "h-11 bg-card px-3 text-base md:text-base";
 
@@ -71,7 +72,7 @@ export function LeadForm({
         <p className="mt-2 text-sm leading-6">
           {isPagesDemo()
             ? "This demo preview does not send the note. Nothing was saved."
-            : "Jalen will see your note. Gateway Web Co builds the website. The first 10 local clients are $500, and you pay only when you're 100% happy."}
+            : `Jalen will see your note. ${gateway.name} builds the website. The first 10 local clients are $500, and you pay only when you're 100% happy.`}
         </p>
       </div>
     );

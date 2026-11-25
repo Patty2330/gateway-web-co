@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { gateway } from "@/lib/gateway";
 import { isPagesDemo } from "@/lib/pages";
 import { anyProviderConfigured } from "@/lib/providers";
 
@@ -18,7 +19,7 @@ export function SiteHeader({ offset }: { offset?: boolean } = {}) {
           </svg>
           <span>
           <span className="block font-serif text-lg leading-none tracking-tight text-foreground">
-            Gateway Web Co
+            {gateway.name}
           </span>
           <span className="mt-1 block text-xs text-muted-foreground">
             Free AI visibility check · Clarksville, TN

@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 
+import { gateway } from "@/lib/gateway";
 import { formatCityState } from "@/lib/place";
 import type { PublicScan } from "@/lib/present";
 
@@ -36,7 +37,7 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
     writeLine(doc, "AI Visibility Check");
     doc.moveDown(0.2);
     doc.font("Times-Roman").fontSize(11).fillColor("#5c5348");
-    writeLine(doc, "Gateway Web Co  ·  Clarksville, Tennessee");
+    writeLine(doc, `${gateway.name}  ·  Clarksville, Tennessee`);
     doc.moveDown(0.8);
 
     doc.font("Times-Bold").fontSize(16).fillColor("#231c17");
@@ -157,7 +158,7 @@ export function renderReportPdf(scan: PublicScan): Promise<Buffer> {
 
     doc.moveDown(1);
     doc.font("Times-Bold").fontSize(12).fillColor("#8d2c2c");
-    writeLine(doc, "Get it fixed by Gateway Web Co");
+    writeLine(doc, `Get it fixed by ${gateway.name}`);
     doc.font("Times-Roman").fontSize(11).fillColor("#231c17");
     writeLine(
       doc,

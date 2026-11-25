@@ -26,7 +26,7 @@ npm test
 
 | Page | What it is |
 | --- | --- |
-| `/` | The Gateway Web Co site: pricing, what's included, concepts, FAQ, and a quote form |
+| `/` | The Two Forks Studio site: pricing, what's included, concepts, FAQ, and a quote form |
 | `/check` | The free AI visibility check |
 | `/scans/...` | The score, the top 3 fixes, and the locked or unlocked report |
 
@@ -36,7 +36,7 @@ The quote form and the "get it fixed" form on a report both save a lead in the d
 
 Leave `RESEND_API_KEY` or `EMAIL_FROM` blank and messages stay in the database. Nothing is sent. Set both and the app sends them with Resend, then marks each row sent or failed. A failed send is saved on the row and does not stop the check or the lead form.
 
-The from-address domain has to be verified in Resend. Until then, use `onboarding@resend.dev` (for example `Gateway Web Co <onboarding@resend.dev>`). The GitHub Pages demo has no API routes, so it never sends mail.
+The from-address domain has to be verified in Resend. Until then, use `onboarding@resend.dev` (for example `Two Forks Studio <onboarding@resend.dev>`). The GitHub Pages demo has no API routes, so it never sends mail.
 
 ## GitHub Pages demo
 

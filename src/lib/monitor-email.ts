@@ -1,3 +1,5 @@
+import { gateway } from "@/lib/gateway";
+
 export function monitorEmail(input: {
   businessName: string;
   previousScore: number;
@@ -23,7 +25,7 @@ export function monitorEmail(input: {
       "",
       `See the latest check: ${input.url}`,
       "",
-      "Gateway Web Co · Clarksville, TN",
+      `${gateway.name} · Clarksville, TN`,
     ].join("\n"),
   };
 }

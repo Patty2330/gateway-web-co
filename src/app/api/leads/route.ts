@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getStore } from "@/lib/db";
 import { zodErrorMessage } from "@/lib/form-error";
 import { getEmailSender } from "@/lib/email";
+import { leadEmailSubject } from "@/lib/gateway";
 import { RateLimitConfigError, clientIp, hashIp } from "@/lib/request";
 
 const schema = z
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
   if (notify) {
     await getEmailSender().send({
       to: notify,
-      subject: `New Gateway Web Co note from ${parsed.data.name}`,
+      subject: leadEmailSubject(parsed.data.name),
       text: [
         `${parsed.data.name} <${parsed.data.email}>`,
         parsed.data.phone ? `Phone: ${parsed.data.phone}` : "",

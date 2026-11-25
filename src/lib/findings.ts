@@ -1,3 +1,4 @@
+import { gateway } from "@/lib/gateway";
 import type { AnswerRecord, CompetitorStat, Finding, SiteCheck } from "@/lib/types";
 
 export function buildFindings(input: {
@@ -46,7 +47,7 @@ export function buildFindings(input: {
       area: "website",
       title: "Put a simple website on the record",
       why: "AI answers like to cite a page. With no site in this check, they have less to point at.",
-      fix: "A one-page site with your services, city, hours, and phone is enough to start. Gateway Web Co builds that kind of site. The first 10 local clients are $500, and you pay only when you're 100% happy.",
+      fix: `A one-page site with your services, city, hours, and phone is enough to start. ${gateway.name} builds that kind of site. The first 10 local clients are $500, and you pay only when you're 100% happy.`,
     });
   }
 

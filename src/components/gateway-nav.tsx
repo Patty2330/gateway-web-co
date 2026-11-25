@@ -7,7 +7,7 @@ import { isPagesDemo, sitePath } from "@/lib/pages";
 export function GatewayNav({ businessName, logo }: { businessName: string; logo?: string }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
-  const [first, rest] = businessName.split(/ (?=Web Co$)/);
+  const [first, rest] = businessName.split(/ (?=Studio$)/);
 
   return (
     <header className="nav" id="top" style={isPagesDemo() ? { top: 44 } : undefined}>
