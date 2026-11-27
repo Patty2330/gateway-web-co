@@ -212,7 +212,7 @@ export function GatewayHome({ site }: { site: SiteContent }) {
             <h2>When people ask AI who to call, do they hear your name?</h2>
             <p className="body">
               More customers now ask AI things like “best barber in Clarksville.” Our free check
-              asks Perplexity those same questions about your kind of business and shows you what
+              asks Perplexity, ChatGPT, and Gemini those same questions about your kind of business and shows you what
               comes back.
             </p>
             <div className="checks">

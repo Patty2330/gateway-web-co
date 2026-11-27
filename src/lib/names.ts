@@ -5,11 +5,12 @@ function stripLeadingThe(name: string): string {
   return name.replace(/^the\s+/, "");
 }
 
-export function normalizeName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
+function foldMarks(name: string): string {
+  return name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+function scrubNormalized(value: string): string {
+  return value
     .replace(/['’]/g, "")
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9\s]/g, " ")
@@ -18,10 +19,80 @@ export function normalizeName(name: string): string {
     .trim();
 }
 
+export function normalizeName(name: string): string {
+  return scrubNormalized(foldMarks(name));
+}
+
+function normalizeNameForms(name: string): string[] {
+  const folded = foldMarks(name);
+  const kept = scrubNormalized(folded);
+  const withoutPossessive = scrubNormalized(folded.replace(/['’]s\b/g, " "));
+  return [...new Set([kept, withoutPossessive].filter(Boolean))];
+}
+
+const BRAND_ALIASES: { match: string[]; replacements: string[][] }[] = [
+  { match: ["harley", "davidson"], replacements: [["harley", "davidson"], ["hd"], ["h", "d"]] },
+  { match: ["hd"], replacements: [["harley", "davidson"], ["hd"], ["h", "d"]] },
+  { match: ["h", "d"], replacements: [["harley", "davidson"], ["hd"], ["h", "d"]] },
+];
+
+function tokensMatchAt(tokens: string[], start: number, pattern: string[]): boolean {
+  if (start + pattern.length > tokens.length) return false;
+  return pattern.every((token, index) => tokens[start + index] === token);
+}
+
+function expandBrandTokens(tokens: string[]): string[][] {
+  const variants: string[][] = [[...tokens]];
+  const seen = new Set<string>([tokens.join(" ")]);
+
+  for (let index = 0; index < variants.length; index++) {
+    const current = variants[index];
+    for (let start = 0; start < current.length; start++) {
+      for (const alias of BRAND_ALIASES) {
+        if (!tokensMatchAt(current, start, alias.match)) continue;
+        for (const replacement of alias.replacements) {
+          const next = [
+            ...current.slice(0, start),
+            ...replacement,
+            ...current.slice(start + alias.match.length),
+          ];
+          const key = next.join(" ");
+          if (seen.has(key)) continue;
+          seen.add(key);
+          variants.push(next);
+        }
+      }
+    }
+  }
+
+  return variants;
+}
+
 function nameForms(name: string): string[] {
-  const normalized = normalizeName(name);
-  const stripped = stripLeadingThe(normalized);
-  return stripped && stripped !== normalized ? [normalized, stripped] : [normalized];
+  const forms = new Set<string>();
+  for (const normalized of normalizeNameForms(name)) {
+    for (const base of [normalized, stripLeadingThe(normalized)]) {
+      if (!base) continue;
+      forms.add(base);
+      for (const variant of expandBrandTokens(base.split(" ").filter(Boolean))) {
+        const joined = variant.join(" ").trim();
+        if (joined) forms.add(joined);
+        const stripped = stripLeadingThe(joined);
+        if (stripped) forms.add(stripped);
+      }
+    }
+  }
+  return [...forms];
+}
+
+function phraseInText(text: string, phrase: string): boolean {
+  if (!text || !phrase) return false;
+  return (
+    text === phrase ||
+    text.startsWith(`${phrase} `) ||
+    text.endsWith(` ${phrase}`) ||
+    text.includes(` ${phrase} `)
+  );
 }
 
 /**
@@ -29,7 +100,9 @@ function nameForms(name: string): string[] {
  * or the list item starts with the business name plus extra words
  * ("Ace Plumbing of Clarksville"). A shorter or middle-of-the-name overlap
  * does not count, so "Ace" does not match "Ace Plumbing".
- * Accents are folded, and a leading "The" is optional on either side.
+ * Accents are folded, a leading "The" is optional on either side, and a
+ * possessive 's / ’s is optional. Distinctive brand aliases such as
+ * "Appleton HD" for "Appleton's Harley-Davidson" also count.
  */
 export function namesMatch(candidate: string, businessName: string): boolean {
   const candidates = nameForms(candidate);
@@ -49,15 +122,14 @@ export function namesMatch(candidate: string, businessName: string): boolean {
 export function textIncludesName(haystack: string, businessName: string): boolean {
   const businesses = nameForms(businessName).filter(Boolean);
   if (businesses.length === 0) return false;
-  const text = normalizeName(haystack);
-  for (const business of businesses) {
-    if (text === business) return true;
-    if (
-      text.startsWith(`${business} `) ||
-      text.endsWith(` ${business}`) ||
-      text.includes(` ${business} `)
-    ) {
-      return true;
+  const texts = nameForms(haystack);
+  if (texts.length === 0) {
+    const fallback = normalizeName(haystack);
+    return businesses.some((business) => phraseInText(fallback, business));
+  }
+  for (const text of texts) {
+    for (const business of businesses) {
+      if (phraseInText(text, business)) return true;
     }
   }
   return false;

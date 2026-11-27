@@ -13,11 +13,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: `Free AI visibility check · ${gateway.name}`,
   description:
-    "See whether Perplexity recommends your Clarksville business, and what to fix.",
+    "See whether Perplexity, ChatGPT, and Gemini recommend your Clarksville business, and what to fix.",
   openGraph: {
     title: `Free AI visibility check · ${gateway.name}`,
     description:
-      "See whether Perplexity recommends your Clarksville business, and what to fix.",
+      "See whether Perplexity, ChatGPT, and Gemini recommend your Clarksville business, and what to fix.",
     siteName: gateway.name,
     type: "website",
   },
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: `Free AI visibility check · ${gateway.name}`,
     description:
-      "See whether Perplexity recommends your Clarksville business, and what to fix.",
+      "See whether Perplexity, ChatGPT, and Gemini recommend your Clarksville business, and what to fix.",
   },
   icons: { icon: "/assets/favicon.svg" },
 };

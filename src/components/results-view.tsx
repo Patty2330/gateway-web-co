@@ -52,7 +52,7 @@ export function ResultsView({
       {sampleOnly ? (
         <div className="mt-5 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm leading-6">
           <strong className="font-medium">Sample answers.</strong> These are stand-ins so you can
-          click through the whole check. Add a Perplexity key to ask Perplexity for real. The
+          click through the whole check. Add a Perplexity key to ask Perplexity, ChatGPT, and Gemini for real. The
           score on this page is from the sample, not from a live answer.
         </div>
       ) : null}
@@ -116,7 +116,7 @@ export function ResultsView({
                 ))}
               </ul>
               <p className="text-sm text-muted-foreground">
-                The score is the average of Perplexity&apos;s answers to eight customer questions.
+                The score is the average of answers from Perplexity, ChatGPT, and Gemini to eight customer questions.
               </p>
             </CardContent>
           </Card>
@@ -150,7 +150,7 @@ export function ResultsView({
               <h2 className="font-serif text-3xl">Full report</h2>
               {scan.mode === "demo" ? (
                 <p className="mt-2 text-sm font-medium text-primary">
-                  Sample report. These answers are stand-ins, not live Perplexity results.
+                  Sample report. These answers are stand-ins, not live Perplexity, ChatGPT, or Gemini results.
                 </p>
               ) : null}
             </div>
@@ -296,7 +296,7 @@ export function ResultsView({
               <div className="relative overflow-hidden rounded-xl border border-dashed border-border p-4">
                 <div className="pointer-events-none select-none blur-[3px]">
                   <p className="text-sm">1. What is the best {scan.category} in {scan.city}?</p>
-                  <p className="mt-2 text-sm text-muted-foreground">Perplexity</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Perplexity · ChatGPT · Gemini</p>
                   <p className="mt-3 text-sm">Cumberland {scan.category} · Maple Street {scan.category}</p>
                 </div>
                 <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm font-medium">

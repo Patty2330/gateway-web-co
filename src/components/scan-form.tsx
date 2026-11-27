@@ -145,7 +145,7 @@ export function ScanForm({
           required
         />
         <datalist id="categories">
-          {["plumber", "electrician", "HVAC", "roofer", "salon", "barber", "dentist", "restaurant", "auto repair", "landscaper"].map(
+          {["plumber", "electrician", "HVAC", "roofer", "salon", "barber", "dentist", "restaurant", "auto repair", "landscaper", "motorcycle dealer", "Harley-Davidson dealer"].map(
             (item) => (
               <option key={item} value={item} />
             ),
@@ -203,7 +203,7 @@ export function ScanForm({
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {sampleMode
             ? "Sample mode, not live results. This run uses stand-in answers so you can click through the check."
-            : "Writing eight questions a customer would ask, then sending them to Perplexity. A live check can take a minute."}
+            : "Writing eight questions a customer would ask, then sending them to Perplexity, ChatGPT, and Gemini. A live check can take a couple of minutes."}
         </p>
       ) : (
         <button

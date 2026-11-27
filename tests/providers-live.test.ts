@@ -49,13 +49,14 @@ describe("live Perplexity provider path", () => {
         websiteUrl: null,
       },
       undefined,
-      { deadlineMs: 8_000 },
+      { deadlineMs: 20_000, minStartGapMs: 0 },
     );
 
     expect(payload.complete).toBe(true);
-    expect(payload.answerCount).toBe(8);
+    expect(payload.answerCount).toBe(24);
     expect(payload.score).toBeGreaterThan(0);
-    expect(payload.providers[0]?.demo).toBe(false);
-    expect(calls.length).toBeGreaterThan(8);
+    expect(payload.providers).toHaveLength(3);
+    expect(payload.providers.every((provider) => provider.demo === false)).toBe(true);
+    expect(calls.length).toBeGreaterThan(24);
   });
 });

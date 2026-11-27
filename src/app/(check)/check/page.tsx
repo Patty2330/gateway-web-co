@@ -13,7 +13,7 @@ export default function CheckPage() {
         </h1>
         <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
           A lot of people now ask an AI who to hire: a plumber, a salon, or a diner. This check
-          asks Perplexity those questions for your business.
+          asks Perplexity, ChatGPT, and Gemini those questions for your business.
         </p>
         <p className="mt-4 max-w-xl leading-7">
           You get a score and the three fixes that matter most, free. The full report is $49.
