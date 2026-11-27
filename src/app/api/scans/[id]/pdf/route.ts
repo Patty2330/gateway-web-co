@@ -13,7 +13,7 @@ export async function GET(
   const view = presentScan(scan);
   if (!view.unlocked) {
     return Response.json(
-      { error: "The PDF is part of the full report. Unlock it for $49." },
+      { error: "The PDF is part of the full report. Unlock it for $10." },
       { status: 402 },
     );
   }

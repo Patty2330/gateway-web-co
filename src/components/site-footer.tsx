@@ -18,7 +18,7 @@ export function SiteFooter() {
           </span>
         </Link>
         <p className="text-[#C9D6CF]">
-          The free check, a $49 report, or $19 a month. © <FooterYear /> {gateway.name}.{" "}
+          The free check, a $10 report, or $19 a month. © <FooterYear /> {gateway.name}.{" "}
           <Link href="/" className="underline underline-offset-4 text-background">
             Back to the website
           </Link>

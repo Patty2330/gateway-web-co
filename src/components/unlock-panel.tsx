@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { storeCheckoutEmail } from "@/lib/checkout-client";
 import { isPagesDemo } from "@/lib/pages";
+import { MONITOR_PRICE_LABEL, REPORT_PRICE_LABEL } from "@/lib/prices";
 
 export function UnlockPanel({
   scanId,
@@ -75,7 +76,7 @@ export function UnlockPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         {tier === "free" ? (
           <Button type="button" size="lg" className="h-12 text-base" disabled={pending !== null} onClick={() => start("report")}>
-            {pending === "report" ? "Opening checkout…" : "Full report · $49"}
+            {pending === "report" ? "Opening checkout…" : `Full report · ${REPORT_PRICE_LABEL}`}
           </Button>
         ) : null}
         {tier !== "monitor" ? (
@@ -87,7 +88,7 @@ export function UnlockPanel({
             disabled={pending !== null}
             onClick={() => start("monitor")}
           >
-            {pending === "monitor" ? "Opening checkout…" : "Watch monthly · $19"}
+            {pending === "monitor" ? "Opening checkout…" : `Watch monthly · ${MONITOR_PRICE_LABEL}`}
           </Button>
         ) : null}
       </div>

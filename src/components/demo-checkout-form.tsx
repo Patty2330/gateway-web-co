@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { isPagesDemo } from "@/lib/pages";
+import { MONITOR_PRICE_CENTS, REPORT_PRICE_CENTS, usdFromCents } from "@/lib/prices";
 import { unlockPagesScan } from "@/lib/pages-store";
 
 export function DemoCheckoutForm({
@@ -21,7 +22,8 @@ export function DemoCheckoutForm({
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const amount = plan === "monitor" ? "$19.00 / month" : "$49.00 once";
+  const amount =
+    plan === "monitor" ? `${usdFromCents(MONITOR_PRICE_CENTS)} / month` : `${usdFromCents(REPORT_PRICE_CENTS)} once`;
 
   async function pay() {
     setPending(true);

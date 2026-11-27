@@ -16,7 +16,7 @@ export default function CheckPage() {
           asks Perplexity, ChatGPT, and Gemini those questions for your business.
         </p>
         <p className="mt-4 max-w-xl leading-7">
-          You get a score and the three fixes that matter most, free. The full report is $49.
+          You get a score and the three fixes that matter most, free. The full report is $10.
           Watching it each month is $19. If the website is part of the problem, {gateway.name} can
           build it. {gateway.buildPitch}
         </p>
