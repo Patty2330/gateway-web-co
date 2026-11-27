@@ -1,6 +1,6 @@
-# Gateway Web Co
+# Two Forks Studio
 
-Rules for anyone (including agents) changing this repo.
+Rules for anyone (including agents) changing this repo. The GitHub repo, Render service, and package name stay `Patty2330/gateway-web-co`.
 
 ## Stack
 
@@ -51,6 +51,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 
 - Work goes on a branch and PR, never a direct push to main. Code Reviewer must give a PASS with proof, then Web Chief merges (Jalen confirmed Nov 25, 2026).
 - Public brand name is Two Forks Studio (Nov 25, 2026); keep internal repo/service names unchanged.
+- All user-facing copy, pages, emails, reports, and docs must use **Two Forks Studio**. Never leave leftover `Gateway Web Co`, `gatewaywebco`, or `Red River Sites` in customer-facing text. Keep live GitHub repo URLs (`Patty2330/gateway-web-co`), live Render URLs (`gateway-web-co.onrender.com`), the GitHub Pages path `/gateway-web-co`, and deployment-sensitive internal identifiers (package name, Render service/database names, storage keys, source file names) unchanged. The footer/contact email stays `gatewaywebco@gmail.com` until Jalen provides a new address. (Jalen / Web Chief naming consistency rule, Nov 27 2026).
 - (Nov 25, 2026, from Jalen) No agent may call work done. Every branch or PR goes to Code Reviewer, which builds and tests it, checks it in a real browser, and gives a PASS with proof (commands, output, screenshots). Web Chief merges or shows Jalen only after that PASS.
 - Use Perplexity as the only AI engine for the visibility check (Jalen, Nov 25 2026).
 - Add DATABASE_URL before PERPLEXITY_API_KEY. The daily cap and saved checks need a persistent database. On Render, turning on the Perplexity key without Postgres leaves rate limits on an ephemeral disk (QA review, Nov 25 2026).

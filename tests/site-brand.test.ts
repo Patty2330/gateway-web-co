@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { inflateSync } from "node:zlib";
 
 import { createElement } from "react";
@@ -192,5 +194,48 @@ describe("public brand", () => {
     expectPublicBrand(String(metadata.openGraph?.siteName ?? ""));
     expectPublicBrand(String(metadata.openGraph?.title ?? ""));
     expectPublicBrand(String(metadata.twitter?.title ?? ""));
+  });
+
+  it("keeps leftover Gateway Web Co, gatewaywebco, and Red River Sites out of user-facing files", () => {
+    const forbidden = [/Gateway\s+Web\s+Co/i, /gatewaywebco/i, /Red\s+River\s+Sites/i];
+    const allowed = [
+      /gatewaywebco@gmail\.com/gi,
+      /https?:\/\/(?:www\.)?github\.com\/Patty2330\/gateway-web-co/gi,
+      /https?:\/\/patty2330\.github\.io\/gateway-web-co/gi,
+      /https?:\/\/gateway-web-co\.onrender\.com/gi,
+      /Patty2330\/gateway-web-co/gi,
+    ];
+    const roots = ["README.md", ".env.example", "_data", "src", "styles.css", "public", "assets"];
+    const skip = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|eot|map|svg)$/i;
+
+    function walk(rel: string): string[] {
+      const abs = path.join(process.cwd(), rel);
+      const st = statSync(abs);
+      if (st.isFile()) return [rel];
+      if (!st.isDirectory()) return [];
+      const out: string[] = [];
+      for (const entry of readdirSync(abs, { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name === ".git") continue;
+        if (entry.isSymbolicLink()) continue;
+        out.push(...walk(path.join(rel, entry.name)));
+      }
+      return out;
+    }
+
+    const hits: string[] = [];
+    for (const root of roots) {
+      for (const file of walk(root)) {
+        if (skip.test(file)) continue;
+        let contents = readFileSync(path.join(process.cwd(), file), "utf8");
+        for (const allow of allowed) {
+          contents = contents.replace(allow, "");
+        }
+        for (const pattern of forbidden) {
+          const match = contents.match(pattern);
+          if (match) hits.push(`${file}: ${match[0]}`);
+        }
+      }
+    }
+    expect(hits).toEqual([]);
   });
 });
