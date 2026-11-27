@@ -31,6 +31,7 @@ describe("check page form mount", () => {
       "utf8",
     );
     expect(source).not.toMatch(/fallback=\{<ScanForm/);
-    expect(source).toMatch(/<ScanForm \/>/);
+    expect(source).not.toMatch(/<Suspense/);
+    expect(source).toMatch(/<ScanForm(?:\s[^>]*)?\s*\/>/);
   });
 });

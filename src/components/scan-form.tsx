@@ -14,18 +14,34 @@ import { US_STATES } from "@/lib/states";
 
 const fieldClass = "h-11 bg-card px-3 text-base md:text-base";
 
-export function ScanForm({ sampleMode: sampleModeProp }: { sampleMode?: boolean } = {}) {
+export function ScanForm({
+  sampleMode: sampleModeProp,
+  initialWebsite,
+}: {
+  sampleMode?: boolean;
+  initialWebsite?: string;
+} = {}) {
   const router = useRouter();
+  const seededWebsite = initialWebsite?.trim() ?? "";
   const initial = readScanFormDraft();
   const [businessName, setBusinessName] = useState(initial.businessName);
   const [category, setCategory] = useState(initial.category);
   const [city, setCity] = useState(initial.city);
   const [state, setState] = useState(initial.state);
-  const [websiteUrl, setWebsiteUrl] = useState(initial.websiteUrl);
+  const [websiteUrl, setWebsiteUrl] = useState(seededWebsite || initial.websiteUrl);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [fetchedSampleMode, setFetchedSampleMode] = useState<boolean | null>(null);
   const sampleMode = sampleModeProp ?? (isPagesDemo() ? true : Boolean(fetchedSampleMode));
+
+  useEffect(() => {
+    const fromQuery =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("website")?.trim() || ""
+        : "";
+    const next = seededWebsite || fromQuery;
+    if (next) setDraft({ websiteUrl: next });
+  }, [seededWebsite]);
 
   useEffect(() => {
     if (sampleModeProp != null || isPagesDemo()) return;
