@@ -12,6 +12,7 @@ const moves = [
   [path.join(root, "tests/scans-route.test.ts"), path.join(hideRoot, "scans-route.test.ts")],
   [path.join(root, "tests/leads-route.test.ts"), path.join(hideRoot, "leads-route.test.ts")],
   [path.join(root, "tests/cron.test.ts"), path.join(hideRoot, "cron.test.ts")],
+  [path.join(root, "tests/stripe-webhook.test.ts"), path.join(hideRoot, "stripe-webhook.test.ts")],
 ];
 
 function hide() {

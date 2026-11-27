@@ -2,7 +2,7 @@ import { checkoutFormSchema } from "@/lib/schemas";
 
 import { getStore } from "@/lib/db";
 import { UNFINISHED_CHECKOUT_MESSAGE, scanIsComplete } from "@/lib/scan-complete";
-import { stripeConfigured } from "@/lib/stripe";
+import { DEMO_CHECKOUT_DISABLED_MESSAGE, demoCheckoutAllowed, stripeConfigured } from "@/lib/stripe";
 
 const schema = checkoutFormSchema;
 
@@ -12,6 +12,10 @@ export async function POST(request: Request) {
       { error: "Stripe is connected. Use the real checkout." },
       { status: 404 },
     );
+  }
+  // Fail closed: a missing Stripe key alone must never unlock reports for free.
+  if (!demoCheckoutAllowed()) {
+    return Response.json({ error: DEMO_CHECKOUT_DISABLED_MESSAGE }, { status: 404 });
   }
 
   let body: unknown;

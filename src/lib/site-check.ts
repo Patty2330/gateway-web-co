@@ -13,7 +13,12 @@ const BLOCKED_HOSTS = new Set([
   "metadata.internal",
 ]);
 
-const HTML_LIMIT_BYTES = 2_000_000;
+export const HTML_LIMIT_BYTES = 2_000_000;
+
+/** The site check only connects to the standard web ports. */
+const ALLOWED_PORTS = new Set(["80", "443"]);
+export const PORT_NOT_ALLOWED_MESSAGE =
+  "We only check websites on the standard web ports (80 and 443).";
 
 function hexPairToIpv4(left: string, right: string): string {
   const high = parseInt(left, 16);
@@ -73,12 +78,16 @@ export function ipv4FromMapped(ip: string): string | null {
 
 function isPrivateIpv4(ip: string): boolean {
   if (ip === "0.0.0.0") return true;
-  const [a, b] = ip.split(".").map(Number);
+  const [a, b, c] = ip.split(".").map(Number);
   if (a === 10 || a === 127 || a === 0) return true;
   if (a === 169 && b === 254) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
   if (a === 192 && b === 168) return true;
   if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 192 && b === 0 && c === 0) return true; // IETF protocol assignments 192.0.0.0/24
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking 198.18.0.0/15
+  if (a >= 224 && a <= 239) return true; // multicast 224.0.0.0/4
+  if (a >= 240) return true; // reserved 240.0.0.0/4, including 255.255.255.255
   return false;
 }
 
@@ -93,6 +102,8 @@ export function isPrivateAddress(ip: string): boolean {
   const first = parseInt(groups[0], 16);
   if ((first & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
   if ((first & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
+  if ((first & 0xff00) === 0xff00) return true; // multicast ff00::/8
+  if (first === 0x2002) return true; // 6to4 2002::/16 can wrap a private IPv4 address
   const full = groups.join(":");
   return full === "0000:0000:0000:0000:0000:0000:0000:0001" || full === "0000:0000:0000:0000:0000:0000:0000:0000";
 }
@@ -154,6 +165,10 @@ async function assertPublicHttpUrl(raw: string): Promise<PublicTarget> {
   if (url.username || url.password) {
     throw new Error("Take the username and password out of the website link.");
   }
+  // URL drops a default port (":80" on http, ":443" on https), so an empty port is fine.
+  if (url.port && !ALLOWED_PORTS.has(url.port)) {
+    throw new Error(PORT_NOT_ALLOWED_MESSAGE);
+  }
   const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (
     BLOCKED_HOSTS.has(hostname) ||
@@ -177,21 +192,47 @@ async function assertPublicHttpUrl(raw: string): Promise<PublicTarget> {
   return { url, address: chosen.address, family: chosen.family === 6 ? 6 : 4 };
 }
 
-function readLimited(response: http.IncomingMessage, maxBytes: number): Promise<string> {
+/**
+ * Read up to maxBytes of the body. Past the cap, destroy the response and
+ * resolve with what we have. A destroyed stream emits "close" but never "end",
+ * so "close" must settle the promise too, or the check would hang forever.
+ */
+export function readLimited(response: http.IncomingMessage, maxBytes: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let total = 0;
-    response.on("data", (chunk: Buffer) => {
+    let truncated = false;
+    let settled = false;
+    const body = () => Buffer.concat(chunks).subarray(0, maxBytes).toString("utf8");
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      response.removeListener("data", onData);
+      if (error) reject(error);
+      else resolve(body());
+    };
+    const onData = (chunk: Buffer) => {
+      if (truncated) return;
       total += chunk.length;
-      if (total <= maxBytes) chunks.push(chunk);
+      chunks.push(chunk);
       if (total >= maxBytes) {
+        truncated = true;
         response.destroy();
+        finish();
       }
+    };
+    response.on("data", onData);
+    response.on("end", () => finish());
+    response.on("error", (error) => {
+      // Our own destroy() can surface as an error on some Node versions. We
+      // already have the capped body, so keep it.
+      if (truncated) finish();
+      else finish(error);
     });
-    response.on("end", () => {
-      resolve(Buffer.concat(chunks).subarray(0, maxBytes).toString("utf8"));
+    response.on("close", () => {
+      if (truncated || response.complete) finish();
+      else finish(new Error("The website closed the connection before the page finished."));
     });
-    response.on("error", reject);
   });
 }
 

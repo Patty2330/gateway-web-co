@@ -2,8 +2,10 @@ name: Monthly AI Visibility Monitor
 
 "on":
   schedule:
-    # 1st of each month at 14:00 UTC (8:00 AM CST / 9:00 AM CDT).
-    - cron: "0 14 1 * *"
+    # Every day at 14:00 UTC (8:00 AM CST / 9:00 AM CDT). Each subscriber is
+    # re-checked on its own due date (30 days after the last finished check),
+    # and an unfinished or failed check is retried the next day.
+    - cron: "0 14 * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -81,6 +83,12 @@ jobs:
                   results = data.get("results")
                   if isinstance(results, list):
                       summary["resultCount"] = len(results)
+                  for key in ("due", "deferred", "budgetExhausted"):
+                      if key in data:
+                          summary[key] = data[key]
+                  for key in ("unfinished", "failed"):
+                      if isinstance(data.get(key), list):
+                          summary[f"{key}Count"] = len(data[key])
               print("Response summary:", json.dumps(summary or data, default=str)[:500])
           PY
 

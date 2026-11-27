@@ -2,8 +2,22 @@ import { getStore } from "@/lib/db";
 import { zodErrorMessage } from "@/lib/form-error";
 import { UNFINISHED_CHECKOUT_MESSAGE, scanIsComplete } from "@/lib/scan-complete";
 import { checkoutFormSchema } from "@/lib/schemas";
-import { appUrlFrom } from "@/lib/request";
-import { createCheckoutSession } from "@/lib/stripe";
+import {
+  RateLimitConfigError,
+  appUrlFrom,
+  checkoutDailyLimit,
+  checkoutDailyLimitReachedMessage,
+  checkoutRateKey,
+  clientIp,
+  hashIp,
+  rateLimitDay,
+} from "@/lib/request";
+import {
+  DEMO_CHECKOUT_DISABLED_MESSAGE,
+  createCheckoutSession,
+  demoCheckoutAllowed,
+  stripeConfigured,
+} from "@/lib/stripe";
 
 const schema = checkoutFormSchema;
 
@@ -22,11 +36,33 @@ export async function POST(request: Request) {
     );
   }
 
+  let ipHash: string;
+  try {
+    ipHash = hashIp(clientIp(request));
+  } catch (error) {
+    if (error instanceof RateLimitConfigError) {
+      return Response.json(
+        { error: "This install isn't ready for checkout. Set RATE_LIMIT_SALT on the server." },
+        { status: 503 },
+      );
+    }
+    throw error;
+  }
+
   const store = await getStore();
+  const attempts = await store.consumeRateLimit(checkoutRateKey(ipHash), rateLimitDay());
+  if (attempts > checkoutDailyLimit()) {
+    return Response.json({ error: checkoutDailyLimitReachedMessage() }, { status: 429 });
+  }
+
   const scan = await store.getScan(parsed.data.scanId);
   if (!scan) return Response.json({ error: "We can't find that check." }, { status: 404 });
   if (!scanIsComplete(scan.payload)) {
     return Response.json({ error: UNFINISHED_CHECKOUT_MESSAGE }, { status: 409 });
+  }
+  if (!stripeConfigured() && !demoCheckoutAllowed()) {
+    // Without Stripe and without ALLOW_DEMO_CHECKOUT=true there is nowhere to pay.
+    return Response.json({ error: DEMO_CHECKOUT_DISABLED_MESSAGE }, { status: 503 });
   }
 
   try {

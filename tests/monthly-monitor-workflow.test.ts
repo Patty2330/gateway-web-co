@@ -29,7 +29,7 @@ describe("monthly monitor workflow", () => {
     expect(triggers).toBeTruthy();
     expect(triggers).not.toBe(true);
     const schedule = triggers.schedule as Array<{ cron: string }>;
-    expect(schedule).toEqual([{ cron: "0 14 1 * *" }]);
+    expect(schedule).toEqual([{ cron: "0 14 * * *" }]);
     expect(Object.prototype.hasOwnProperty.call(triggers, "workflow_dispatch")).toBe(true);
   });
 

@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
+  appUrlFrom,
+  CANONICAL_APP_URL,
   clientIp,
   dailyLimitReachedMessage,
   hashIp,
@@ -20,6 +22,7 @@ import {
   scanRateLimitLogLine,
   shouldRefundUnfinishedAttempt,
   trustCfConnectingIp,
+  TRUSTED_APP_HOSTS,
   unfinishedRateKey,
 } from "@/lib/request";
 
@@ -320,5 +323,97 @@ describe("leadsDailyLimitReachedMessage", () => {
       "That's enough notes for today. Jalen at Two Forks Studio will see the ones you already sent.",
     );
     expect(message).not.toContain("gatewaywebco@gmail.com");
+  });
+});
+
+describe("appUrlFrom host-header injection", () => {
+  function hostRequest(headers: Record<string, string>): Request {
+    return new Request("http://internal/api/checkout", { headers });
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function production() {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("APP_URL", "");
+  }
+
+  it("always prefers APP_URL, whatever the headers say", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("APP_URL", "https://gateway-web-co-pr-18.onrender.com/");
+    expect(appUrlFrom(hostRequest({ host: "evil.example", "x-forwarded-host": "evil.example" }))).toBe(
+      "https://gateway-web-co-pr-18.onrender.com",
+    );
+  });
+
+  it.each([
+    [{ host: "evil.example" }],
+    [{ "x-forwarded-host": "evil.example", host: "evil.example" }],
+    [{ "x-forwarded-host": "twoforksstudio.com.evil.example" }],
+    [{ "x-forwarded-host": "eviltwoforksstudio.com" }],
+    [{ "x-forwarded-host": "twoforksstudio.com@evil.example" }],
+    [{ "x-forwarded-host": "evil.example/twoforksstudio.com" }],
+    [{ "x-forwarded-host": "evil.example#twoforksstudio.com" }],
+    [{ "x-forwarded-host": "localhost:43123" }],
+    [{ "x-forwarded-host": "127.0.0.1" }],
+    [{ "x-forwarded-host": "" }],
+    [{}],
+  ])("in production, never reflects an untrusted host: %j", (headers) => {
+    production();
+    expect(appUrlFrom(hostRequest(headers as Record<string, string>))).toBe(CANONICAL_APP_URL);
+  });
+
+  it("in production, ignores a forged X-Forwarded-Host and uses a trusted Host", () => {
+    production();
+    expect(
+      appUrlFrom(hostRequest({ "x-forwarded-host": "evil.example", host: "gateway-web-co.onrender.com" })),
+    ).toBe("https://gateway-web-co.onrender.com");
+  });
+
+  it("in production, forces https and drops the port for trusted hosts", () => {
+    production();
+    expect(
+      appUrlFrom(hostRequest({ host: "WWW.TwoForksStudio.com:8080", "x-forwarded-proto": "http" })),
+    ).toBe("https://www.twoforksstudio.com");
+    expect(appUrlFrom(hostRequest({ host: "twoforksstudio.com." }))).toBe("https://twoforksstudio.com");
+  });
+
+  it("in production, takes only the first X-Forwarded-Host value", () => {
+    production();
+    expect(appUrlFrom(hostRequest({ "x-forwarded-host": "evil.example, twoforksstudio.com" }))).toBe(
+      CANONICAL_APP_URL,
+    );
+    expect(appUrlFrom(hostRequest({ "x-forwarded-host": "twoforksstudio.com, evil.example" }))).toBe(
+      "https://twoforksstudio.com",
+    );
+  });
+
+  it("outside production, allows loopback hosts with their port", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("APP_URL", "");
+    expect(appUrlFrom(hostRequest({ host: "127.0.0.1:43123" }))).toBe("http://127.0.0.1:43123");
+    expect(appUrlFrom(hostRequest({ host: "localhost:3000", "x-forwarded-proto": "https" }))).toBe(
+      "https://localhost:3000",
+    );
+    expect(appUrlFrom(hostRequest({ host: "localhost:3000", "x-forwarded-proto": "javascript" }))).toBe(
+      "http://localhost:3000",
+    );
+  });
+
+  it("outside production, still refuses a foreign host and falls back to localhost", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("APP_URL", "");
+    expect(appUrlFrom(hostRequest({ host: "evil.example" }))).toBe("http://127.0.0.1:43123");
+    expect(appUrlFrom(hostRequest({ host: "localhost:99999" }))).toBe("http://127.0.0.1:43123");
+  });
+
+  it("lists exactly the hosts we own", () => {
+    expect([...TRUSTED_APP_HOSTS].sort()).toEqual([
+      "gateway-web-co.onrender.com",
+      "twoforksstudio.com",
+      "www.twoforksstudio.com",
+    ]);
   });
 });

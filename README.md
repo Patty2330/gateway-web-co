@@ -54,7 +54,7 @@ The same business is reused for 24 hours so a refresh does not call Perplexity a
 
 Copy `.env.example` to `.env.local`. The check needs `PERPLEXITY_API_KEY` (Agent API). The default models are `perplexity/sonar`, `openai/gpt-6-luna`, and `google/gemini-3.8-flash`. Stripe test mode, Postgres, and the monthly cron secret are separate.
 
-Stripe, without a secret key, opens a practice checkout that is labeled as a practice and does not charge a card. With `sk_test_...`, Checkout is real test mode. Card `4242 4242 4242 4242`.
+Stripe, without a secret key and with `ALLOW_DEMO_CHECKOUT=true` (set in `.env.example`), opens a practice checkout that is labeled as a practice and does not charge a card. Without that flag, checkout refuses to start instead of unlocking reports for free. With `sk_test_...`, Checkout is real test mode. Card `4242 4242 4242 4242`.
 
 ## What a scan costs
 
@@ -70,8 +70,8 @@ GitHub Pages cannot run this app. It needs Node, and the database should be Post
 2. Create a web service from this repo. Build: `npm install && npm run build`. Start: `npm start`. The start script listens on `0.0.0.0` and `$PORT`.
 3. Set `APP_URL` to the public https address (`https://twoforksstudio.com` in production, or the Render preview URL on a preview). You can also set `SITE_URL` or `NEXT_PUBLIC_SITE_URL` for metadata, Open Graph, and JSON-LD; if those are unset, `APP_URL` is used, and if that is also unset the default is `https://twoforksstudio.com`. Add `PERPLEXITY_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `CRON_SECRET`. A `render.yaml` in this repo creates the web service and Postgres and wires `DATABASE_URL`.
 4. Health check path: `/api/health`.
-5. In Stripe, add a webhook at `https://YOUR-DOMAIN/api/stripe/webhook` for `checkout.session.completed`. Keep the test key until you mean to charge real cards.
-6. Add a Render cron job that POSTs to `/api/cron/monitor` once a month with `Authorization: Bearer <CRON_SECRET>`.
+5. In Stripe, add a webhook at `https://YOUR-DOMAIN/api/stripe/webhook` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed`. Do not set `ALLOW_DEMO_CHECKOUT` on the live service. Keep the test key until you mean to charge real cards.
+6. `.github/workflows/monthly-monitor.yml` POSTs to `/api/cron/monitor` every day with `Authorization: Bearer <CRON_SECRET>`. Each watch re-runs on its own due date; unfinished or failed re-checks retry the next day, and one request stops starting new scans after about 120 seconds.
 
 The old GitHub Pages site was a Jekyll page at `https://patty2330.github.io/gateway-web-co/`. This app replaces that. The live domain is `https://twoforksstudio.com`. After you merge and point that domain (or the Render URL) at it, turn GitHub Pages off so people are not looking at the old page.
 

@@ -22,9 +22,12 @@ const SKIP_DIRS = new Set([
   "dist",
 ]);
 
+// Generated build caches can hold any digits (hashes, offsets), so skip them.
+const SKIP_FILES = new Set(["tsconfig.tsbuildinfo"]);
+
 function walkFiles(dir: string, files: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
-    if (SKIP_DIRS.has(name)) continue;
+    if (SKIP_DIRS.has(name) || SKIP_FILES.has(name)) continue;
     const full = path.join(dir, name);
     const stat = statSync(full);
     if (stat.isDirectory()) {

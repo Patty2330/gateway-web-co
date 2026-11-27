@@ -142,12 +142,24 @@ class Store {
     return row ? mapScan(row) : null;
   }
 
+  /**
+   * Reuse a recent free check from the same connection. Paid or unlocked checks
+   * are never handed back: people behind one IP (an office, a phone carrier's
+   * NAT) would otherwise get each other's paid report link.
+   */
   async findRecentByIp(ipHash: string, cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
     const rows = await this.sql.all(
-      `SELECT * FROM scans WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 20`,
+      `SELECT * FROM scans
+       WHERE ip_hash = ? AND cache_key = ? AND created_at >= ? AND tier = 'free'
+         AND email IS NULL AND stripe_session_id IS NULL AND stripe_subscription_id IS NULL
+       ORDER BY created_at DESC LIMIT 20`,
       [ipHash, cacheKey, sinceIso],
     );
-    return rows.map(mapScan).find((scan) => scanIsComplete(scan.payload)) ?? null;
+    return (
+      rows
+        .map(mapScan)
+        .find((scan) => scan.tier === "free" && scanIsComplete(scan.payload)) ?? null
+    );
   }
 
   async findRecentCache(cacheKey: string, sinceIso: string): Promise<ScanRecord | null> {
@@ -288,6 +300,45 @@ class Store {
       [dropMonitor(current.tier), now, current.id],
     );
     return this.getScan(current.id);
+  }
+
+  /**
+   * Stop monthly re-checks for a subscription that is not paying (past_due,
+   * unpaid, paused). The tier and subscription id stay so it can resume.
+   * Returns how many checks were paused.
+   */
+  async pauseMonitor(subscriptionId: string, now: Date = new Date()): Promise<number> {
+    const rows = await this.sql.all(
+      `SELECT id FROM scans WHERE stripe_subscription_id = ? AND tier = 'monitor' AND next_run_at IS NOT NULL`,
+      [subscriptionId],
+    );
+    if (rows.length === 0) return 0;
+    await this.sql.run(
+      `UPDATE scans SET next_run_at = NULL, updated_at = ?
+       WHERE stripe_subscription_id = ? AND tier = 'monitor' AND next_run_at IS NOT NULL`,
+      [now.toISOString(), subscriptionId],
+    );
+    return rows.length;
+  }
+
+  /**
+   * Resume a paused monitor once the subscription is active again. A monitor
+   * that is already scheduled keeps its date. A paused one is due right away,
+   * so the next daily cron picks it up. Returns how many checks were resumed.
+   */
+  async resumeMonitor(subscriptionId: string, now: Date = new Date()): Promise<number> {
+    const rows = await this.sql.all(
+      `SELECT id FROM scans WHERE stripe_subscription_id = ? AND tier = 'monitor' AND next_run_at IS NULL`,
+      [subscriptionId],
+    );
+    if (rows.length === 0) return 0;
+    const iso = now.toISOString();
+    await this.sql.run(
+      `UPDATE scans SET next_run_at = ?, updated_at = ?
+       WHERE stripe_subscription_id = ? AND tier = 'monitor' AND next_run_at IS NULL`,
+      [iso, iso, subscriptionId],
+    );
+    return rows.length;
   }
 
   async consumeRateLimit(ipHash: string, day: string): Promise<number> {
