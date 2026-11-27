@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 
+import { MONITOR_PRICE_CENTS, REPORT_PRICE_CENTS } from "@/lib/prices";
 import type { Plan } from "@/lib/types";
 
 export function stripeConfigured(): boolean {
@@ -40,7 +41,7 @@ export async function createCheckoutSession(input: {
             quantity: 1,
             price_data: {
               currency: "usd",
-              unit_amount: 1900,
+              unit_amount: MONITOR_PRICE_CENTS,
               recurring: { interval: "month" },
               product_data: { name: productName, description: productDescription },
             },
@@ -49,7 +50,7 @@ export async function createCheckoutSession(input: {
             quantity: 1,
             price_data: {
               currency: "usd",
-              unit_amount: 4900,
+              unit_amount: REPORT_PRICE_CENTS,
               product_data: { name: productName, description: productDescription },
             },
           },

@@ -1,6 +1,6 @@
 # Two Forks Studio
 
-One site for Two Forks Studio, Jalen's Clarksville web business. The live site is [https://twoforksstudio.com](https://twoforksstudio.com). Contact: [hello@twoforksstudio.com](mailto:hello@twoforksstudio.com). The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
+One site for Two Forks Studio, Jalen's Clarksville web business. The live site is [https://twoforksstudio.com](https://twoforksstudio.com). Contact: [hello@twoforksstudio.com](mailto:hello@twoforksstudio.com). The homepage sells the websites. The free AI visibility check is the lead magnet, and the $10 report and $19-a-month watch are the paid add-ons.
 
 The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity, ChatGPT, and Gemini eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
 
@@ -60,7 +60,7 @@ Stripe, without a secret key, opens a practice checkout that is labeled as a pra
 
 A live scan asks Perplexity 8 questions. Sample mode is free. Prices below are from Perplexity's public rate card in November 2026. They move.
 
-`perplexity/sonar` is $0.25 per million input tokens and $2.50 per million output tokens, plus $0.0025 per web search. Each question does one search. **One scan is about 3 to 8 cents.** Twenty different businesses in a day is roughly $0.60 to $1.60. Stripe's fee on a $49 card is about $1.72.
+`perplexity/sonar` is $0.25 per million input tokens and $2.50 per million output tokens, plus $0.0025 per web search. Each question does one search. **One scan is about 3 to 8 cents.** Twenty different businesses in a day is roughly $0.60 to $1.60. Stripe's fee on a $10 card is about $0.59.
 
 ## Deploy on Render
 
