@@ -2,16 +2,21 @@ import { buildDemoAnswer, demoSeed } from "@/lib/demo";
 import { buildFindings } from "@/lib/findings";
 import { parseAnswer } from "@/lib/parse";
 import { anyProviderConfigured, getProviders, type AnswerProvider, type ProviderAskOptions } from "@/lib/providers";
-import { MIN_ANSWERS_TO_FINISH, scanIsComplete } from "@/lib/scan-complete";
+import { defaultSleep } from "@/lib/retry";
+import { scanIsComplete } from "@/lib/scan-complete";
 import { buildQuestions } from "@/lib/questions";
 import { aggregateCompetitors, pointsFor, visibilityScore } from "@/lib/score";
 import { formatCityState } from "@/lib/place";
 import { checkWebsite } from "@/lib/site-check";
 import type { AnswerRecord, Question, ScanInput, ScanMode, ScanPayload, Source } from "@/lib/types";
 
+/** Bump this when matcher or provider behavior changes so stale cached 0s are not reused. */
+export const VISIBILITY_CACHE_VERSION = "v2-3models-match";
+
 export function buildCacheKey(input: ScanInput, signature: string): string {
   const norm = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
   return [
+    VISIBILITY_CACHE_VERSION,
     norm(input.businessName),
     norm(input.category),
     norm(input.city),
@@ -25,14 +30,18 @@ export function scanMode(): ScanMode {
   return anyProviderConfigured() ? "live" : "demo";
 }
 
-/** Live Perplexity questions run two at a time so a single check is less likely to hit 429s. */
+/** Live Agent API questions run two at a time, paced to about 1 start per second. */
 export const PERPLEXITY_CONCURRENCY = 2;
+
+/** Tier 0 is 1 QPS. Space live request starts so we stay at that rate, plus 429 retries. */
+export const MIN_AGENT_START_GAP_MS = 1_000;
 
 /**
  * Hard wall-clock cap for one check, including per-request timeouts, retries, and waits.
- * In-flight Perplexity requests are aborted when this deadline is reached.
+ * 24 Agent API calls (8 questions × 3 models) need more room than a single-model run.
+ * In-flight requests are aborted when this deadline is reached.
  */
-export const SCAN_DEADLINE_MS = 40_000;
+export const SCAN_DEADLINE_MS = 120_000;
 
 export function buildPrompt(question: string, input: Pick<ScanInput, "city" | "state">): string {
   return [
@@ -57,6 +66,34 @@ function mergeSources(left: Source[], right: Source[]): Source[] {
   return merged;
 }
 
+function errorClassOf(error: unknown, message?: string): string | undefined {
+  const record = error && typeof error === "object" ? (error as { name?: string; httpStatus?: number; errorClass?: string }) : null;
+  if (record?.errorClass) return record.errorClass;
+  if (typeof record?.httpStatus === "number") return `http_${record.httpStatus}`;
+  if (record?.name === "AbortError") return "abort";
+  const text = message ?? (error instanceof Error ? error.message : "");
+  if (!text) return undefined;
+  if (/out of time|aborted/i.test(text)) return "abort";
+  const status = text.match(/returned (\d{3})/);
+  if (status) return `http_${status[1]}`;
+  if (/empty answer/i.test(text)) return "empty";
+  return "error";
+}
+
+function logVisibility(event: string, fields: Record<string, unknown>): void {
+  const safe: Record<string, unknown> = { event };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined) continue;
+    const lower = key.toLowerCase();
+    if (/(?:^|_)(?:api)?key(?:_|$)|authorization|prompt|ip(?:hash|addr)?|salt|token/.test(lower)) {
+      continue;
+    }
+    if (typeof value === "string" && /bearer\s+\S+/i.test(value)) continue;
+    safe[key] = value;
+  }
+  console.info(JSON.stringify(safe));
+}
+
 async function askOne(
   provider: AnswerProvider,
   question: Question,
@@ -70,6 +107,25 @@ async function askOne(
     providerId: provider.id,
     providerName: provider.name,
   };
+  const model = provider.model?.();
+  const started = (ask?.now ?? Date.now)();
+
+  const finish = (
+    record: Omit<AnswerRecord, "questionId" | "question" | "providerId" | "providerName">,
+    extra: { errorClass?: string; httpStatus?: number; latencyMs?: number } = {},
+  ): AnswerRecord => {
+    const latencyMs = extra.latencyMs ?? Math.max(0, (ask?.now ?? Date.now)() - started);
+    logVisibility("visibility.question", {
+      provider: provider.id,
+      model,
+      httpStatus: extra.httpStatus,
+      errorClass: extra.errorClass ?? (record.error ? errorClassOf(undefined, record.error) : undefined),
+      latencyMs,
+      mentioned: record.mentioned,
+      rank: record.rank,
+    });
+    return { ...base, ...record };
+  };
 
   if (!provider.configured()) {
     const text = buildDemoAnswer({
@@ -80,9 +136,8 @@ async function askOne(
       questionIndex: question.index,
       seed,
     });
-    const parsed = parseAnswer(text, input.businessName);
-    return {
-      ...base,
+    const parsed = parseAnswer(text, input.businessName, { websiteUrl: input.websiteUrl });
+    return finish({
       demo: true,
       text,
       mentioned: parsed.mentioned,
@@ -90,48 +145,67 @@ async function askOne(
       competitors: parsed.competitors,
       sources: parsed.sources,
       points: pointsFor(parsed.mentioned, parsed.rank),
-    };
+    });
   }
 
   try {
-    const live = await provider.answer(buildPrompt(question.text, input), ask);
+    const live = await provider.answer(buildPrompt(question.text, input), {
+      ...ask,
+      city: input.city,
+      state: input.state,
+    });
     if (!live.text) {
-      return {
-        ...base,
+      return finish(
+        {
+          demo: false,
+          text: "",
+          mentioned: false,
+          rank: null,
+          competitors: [],
+          sources: live.sources,
+          error: `${provider.name} returned an empty answer.`,
+          points: 0,
+        },
+        { errorClass: "empty", httpStatus: live.httpStatus, latencyMs: live.latencyMs },
+      );
+    }
+    const parsed = parseAnswer(live.text, input.businessName, {
+      websiteUrl: input.websiteUrl,
+      extraSources: live.sources,
+    });
+    return finish(
+      {
+        demo: false,
+        text: live.text,
+        mentioned: parsed.mentioned,
+        rank: parsed.rank,
+        competitors: parsed.competitors,
+        sources: mergeSources(parsed.sources, live.sources),
+        points: pointsFor(parsed.mentioned, parsed.rank),
+      },
+      { httpStatus: live.httpStatus, latencyMs: live.latencyMs },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `${provider.name} failed.`;
+    return finish(
+      {
         demo: false,
         text: "",
         mentioned: false,
         rank: null,
         competitors: [],
-        sources: live.sources,
-        error: `${provider.name} returned an empty answer.`,
+        sources: [],
+        error: message.slice(0, 240),
         points: 0,
-      };
-    }
-    const parsed = parseAnswer(live.text, input.businessName);
-    return {
-      ...base,
-      demo: false,
-      text: live.text,
-      mentioned: parsed.mentioned,
-      rank: parsed.rank,
-      competitors: parsed.competitors,
-      sources: mergeSources(parsed.sources, live.sources),
-      points: pointsFor(parsed.mentioned, parsed.rank),
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : `${provider.name} failed.`;
-    return {
-      ...base,
-      demo: false,
-      text: "",
-      mentioned: false,
-      rank: null,
-      competitors: [],
-      sources: [],
-      error: message.slice(0, 240),
-      points: 0,
-    };
+      },
+      {
+        errorClass: errorClassOf(error, message),
+        httpStatus:
+          error && typeof error === "object" && "httpStatus" in error
+            ? Number((error as { httpStatus?: number }).httpStatus)
+            : undefined,
+      },
+    );
   }
 }
 
@@ -144,6 +218,7 @@ export async function executeScan(
     deadlineMs?: number;
     now?: () => number;
     signal?: AbortSignal;
+    minStartGapMs?: number;
   } = {},
 ): Promise<ScanPayload> {
   const questions = existingQuestions ?? buildQuestions(input);
@@ -167,6 +242,20 @@ export async function executeScan(
   const timer = realClock
     ? setTimeout(() => controller.abort(), Math.max(0, deadlineAt - Date.now()))
     : undefined;
+  const minStartGapMs = options.minStartGapMs ?? MIN_AGENT_START_GAP_MS;
+  let lastLiveStart = 0;
+  let paceChain = Promise.resolve();
+
+  const waitForLiveSlot = async (configured: boolean) => {
+    if (!configured || minStartGapMs <= 0) return;
+    const turn = paceChain.then(async () => {
+      const wait = Math.max(0, minStartGapMs - (now() - lastLiveStart));
+      if (wait > 0) await defaultSleep(wait, controller.signal);
+      lastLiveStart = now();
+    });
+    paceChain = turn.catch(() => undefined);
+    await turn;
+  };
 
   const cancelledAnswer = (task: (typeof tasks)[number], message: string): AnswerRecord => ({
     questionId: task.question.id,
@@ -185,10 +274,15 @@ export async function executeScan(
 
   const results: Array<AnswerRecord | undefined> = new Array(tasks.length);
   let next = 0;
-  let settled = 0;
-  let successes = 0;
 
-  const canStillFinish = () => successes + (tasks.length - settled) >= MIN_ANSWERS_TO_FINISH;
+  const canStillFinish = () => {
+    const projected = tasks.map((task, index) => {
+      const existing = results[index];
+      if (existing) return existing;
+      return { providerId: task.provider.id };
+    });
+    return scanIsComplete({ answers: projected });
+  };
   const outOfTime = () => controller.signal.aborted || now() >= deadlineAt;
 
   try {
@@ -206,6 +300,11 @@ export async function executeScan(
         next += 1;
         const task = tasks[index];
         try {
+          await waitForLiveSlot(task.provider.configured());
+          if (outOfTime() || !canStillFinish()) {
+            results[index] = cancelledAnswer(task, "The check ran out of time.");
+            return;
+          }
           results[index] = await askOne(task.provider, task.question, input, seed, {
             signal: controller.signal,
             deadlineAt,
@@ -220,8 +319,6 @@ export async function executeScan(
                 : `${task.provider.name} failed.`;
           results[index] = cancelledAnswer(task, message);
         } finally {
-          settled += 1;
-          if (results[index] && !results[index]?.error) successes += 1;
           if (outOfTime() || !canStillFinish()) controller.abort();
         }
       }
@@ -286,6 +383,20 @@ export async function executeScan(
         errors: rows.filter((row) => row.error).length,
         error,
       };
+    });
+
+    logVisibility("visibility.scan", {
+      complete,
+      answerCount: usable.length,
+      mentionCount,
+      score,
+      latencyMs: Math.max(0, now() - started),
+      providers: providerStats.map((provider) => ({
+        id: provider.id,
+        answers: provider.answers,
+        errors: provider.errors,
+        mentions: provider.mentions,
+      })),
     });
 
     return {

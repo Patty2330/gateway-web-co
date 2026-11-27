@@ -2,7 +2,7 @@
 
 One site for Two Forks Studio, Jalen's Clarksville web business. The live site is [https://twoforksstudio.com](https://twoforksstudio.com). Contact: [hello@twoforksstudio.com](mailto:hello@twoforksstudio.com). The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
 
-The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
+The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity, ChatGPT, and Gemini eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
 
 ## Run it on your computer
 
@@ -48,11 +48,11 @@ Pushing to `main` runs `.github/workflows/pages.yml`, which publishes the `out` 
 
 ## Sample mode and live mode
 
-Leave `PERPLEXITY_API_KEY` blank and every answer is a labeled sample. Cost is $0. Set the key and the same eight questions go to Perplexity. That is the only engine.
+Leave `PERPLEXITY_API_KEY` blank and every answer is a labeled sample. Cost is $0. Set the key and the same eight questions go to Perplexity, ChatGPT, and Gemini through Perplexity's Agent API. One key runs all three models.
 
 The same business is reused for 24 hours so a refresh does not call Perplexity again. Each connection gets 5 new checks a day.
 
-Copy `.env.example` to `.env.local`. The check needs `PERPLEXITY_API_KEY` (Agent API, model `perplexity/sonar`). Stripe test mode, Postgres, and the monthly cron secret are separate.
+Copy `.env.example` to `.env.local`. The check needs `PERPLEXITY_API_KEY` (Agent API). The default models are `perplexity/sonar`, `openai/gpt-6-luna`, and `google/gemini-3.8-flash`. Stripe test mode, Postgres, and the monthly cron secret are separate.
 
 Stripe, without a secret key, opens a practice checkout that is labeled as a practice and does not charge a card. With `sk_test_...`, Checkout is real test mode. Card `4242 4242 4242 4242`.
 

@@ -1,6 +1,7 @@
 import { buildDemoAnswer, demoSeed } from "@/lib/demo";
 import { buildFindings } from "@/lib/findings";
 import { parseAnswer } from "@/lib/parse";
+import { getProviders } from "@/lib/providers";
 import { buildQuestions } from "@/lib/questions";
 import { aggregateCompetitors, pointsFor, visibilityScore } from "@/lib/score";
 import type { AnswerRecord, ScanInput, ScanPayload, ScanRecord } from "@/lib/types";
@@ -8,31 +9,34 @@ import type { AnswerRecord, ScanInput, ScanPayload, ScanRecord } from "@/lib/typ
 /** Sample scan that stays in the browser. No network, no database. */
 export function runDemoScan(input: ScanInput): ScanPayload {
   const questions = buildQuestions(input);
+  const providers = getProviders();
   const seed = demoSeed(input);
-  const answers: AnswerRecord[] = questions.map((question) => {
-    const text = buildDemoAnswer({
-      businessName: input.businessName,
-      category: input.category,
-      city: input.city,
-      state: input.state,
-      questionIndex: question.index,
-      seed,
-    });
-    const parsed = parseAnswer(text, input.businessName);
-    return {
-      questionId: question.id,
-      question: question.text,
-      providerId: "perplexity",
-      providerName: "Perplexity",
-      demo: true,
-      text,
-      mentioned: parsed.mentioned,
-      rank: parsed.rank,
-      competitors: parsed.competitors,
-      sources: parsed.sources,
-      points: pointsFor(parsed.mentioned, parsed.rank),
-    };
-  });
+  const answers: AnswerRecord[] = questions.flatMap((question) =>
+    providers.map((provider) => {
+      const text = buildDemoAnswer({
+        businessName: input.businessName,
+        category: input.category,
+        city: input.city,
+        state: input.state,
+        questionIndex: question.index,
+        seed,
+      });
+      const parsed = parseAnswer(text, input.businessName, { websiteUrl: input.websiteUrl });
+      return {
+        questionId: question.id,
+        question: question.text,
+        providerId: provider.id,
+        providerName: provider.name,
+        demo: true,
+        text,
+        mentioned: parsed.mentioned,
+        rank: parsed.rank,
+        competitors: parsed.competitors,
+        sources: parsed.sources,
+        points: pointsFor(parsed.mentioned, parsed.rank),
+      };
+    }),
+  );
 
   const mentionCount = answers.filter((answer) => answer.mentioned).length;
   const competitors = aggregateCompetitors(answers, input.businessName);
@@ -59,16 +63,17 @@ export function runDemoScan(input: ScanInput): ScanPayload {
     mentionCount,
     answerCount: answers.length,
     complete: true,
-    providers: [
-      {
-        id: "perplexity",
-        name: "Perplexity",
+    providers: providers.map((provider) => {
+      const rows = answers.filter((answer) => answer.providerId === provider.id);
+      return {
+        id: provider.id,
+        name: provider.name,
         demo: true,
-        mentions: mentionCount,
-        answers: answers.length,
+        mentions: rows.filter((row) => row.mentioned).length,
+        answers: rows.length,
         errors: 0,
-      },
-    ],
+      };
+    }),
   };
 }
 

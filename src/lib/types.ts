@@ -1,4 +1,4 @@
-export type ProviderId = "perplexity";
+export type ProviderId = "perplexity" | "openai" | "gemini";
 
 export type ScanMode = "demo" | "live";
 

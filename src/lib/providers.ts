@@ -5,20 +5,34 @@ import type { ProviderId, Source } from "@/lib/types";
 export type ProviderAnswer = {
   text: string;
   sources: Source[];
+  model?: string;
+  httpStatus?: number;
+  latencyMs?: number;
 };
 
 export type ProviderAskOptions = {
   signal?: AbortSignal;
   deadlineAt?: number;
   now?: () => number;
+  city?: string;
+  state?: string;
 };
 
 export type AnswerProvider = {
   id: ProviderId;
   name: string;
+  model?: () => string;
   configured: () => boolean;
   answer: (prompt: string, options?: ProviderAskOptions) => Promise<ProviderAnswer>;
 };
+
+export const PERPLEXITY_AGENT_URL = "https://api.perplexity.ai/v1/agent";
+
+export const DEFAULT_PROVIDER_MODELS = {
+  perplexity: "perplexity/sonar",
+  openai: "openai/gpt-6-luna",
+  gemini: "google/gemini-3.8-flash",
+} as const;
 
 function mergeTitle(sources: Source[]): Source[] {
   const seen = new Set<string>();
@@ -41,7 +55,7 @@ async function readError(response: Response): Promise<string> {
   }
 }
 
-function textFromResponses(data: Json): ProviderAnswer {
+export function textFromResponses(data: Json): ProviderAnswer {
   const sources: Source[] = [];
   const texts: string[] = [];
   const output = Array.isArray(data.output) ? data.output : [];
@@ -86,32 +100,51 @@ function textFromResponses(data: Json): ProviderAnswer {
   return { text: texts.join("\n\n").trim(), sources: mergeTitle(sources) };
 }
 
-function perplexity(): AnswerProvider {
+function userLocation(options: ProviderAskOptions): { country: "US"; region: string; city: string } | undefined {
+  const city = options.city?.trim() ?? "";
+  const region = options.state?.trim() ?? "";
+  if (!city || !region) return undefined;
+  return { country: "US", region, city };
+}
+
+function agentProvider(
+  id: ProviderId,
+  name: string,
+  modelEnv: "PERPLEXITY_MODEL" | "OPENAI_MODEL" | "GEMINI_MODEL",
+  defaultModel: string,
+): AnswerProvider {
+  const modelOf = () => process.env[modelEnv]?.trim() || defaultModel;
   return {
-    id: "perplexity",
-    name: "Perplexity",
+    id,
+    name,
+    model: modelOf,
     configured: () => Boolean(process.env.PERPLEXITY_API_KEY),
     async answer(prompt: string, options: ProviderAskOptions = {}) {
-      const model = process.env.PERPLEXITY_MODEL || "perplexity/sonar";
+      const model = modelOf();
       const now = options.now ?? Date.now;
+      const started = now();
       const remaining = options.deadlineAt == null ? 28_000 : Math.max(0, options.deadlineAt - now());
+      const location = userLocation(options);
+      const body: Record<string, unknown> = {
+        model,
+        input: prompt,
+        max_steps: 1,
+        tools: [{ type: "web_search" }],
+        tool_choice: { type: "web_search" },
+        instructions:
+          "Search the web once for this local question, then answer. Recommend real businesses. Use a numbered list when you name more than one, best first. Include the source URLs.",
+        max_output_tokens: 700,
+      };
+      if (location) body.user_location = location;
       const response = await fetchWithRetry(
-        "https://api.perplexity.ai/v1/agent",
+        PERPLEXITY_AGENT_URL,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model,
-            input: prompt,
-            tools: [{ type: "web_search" }],
-            tool_choice: { type: "web_search" },
-            instructions:
-              "Search the web once for this local question, then answer. Recommend real businesses. Use a numbered list when you name more than one, best first. Include the source URLs.",
-            max_output_tokens: 700,
-          }),
+          body: JSON.stringify(body),
         },
         {
           timeoutMs: Math.min(28_000, remaining),
@@ -121,16 +154,28 @@ function perplexity(): AnswerProvider {
           now,
         },
       );
+      const latencyMs = Math.max(0, now() - started);
       if (!response.ok) {
-        throw new Error(shortError("Perplexity", response.status, await readError(response)));
+        const error = new Error(shortError(name, response.status, await readError(response))) as Error & {
+          httpStatus?: number;
+          errorClass?: string;
+        };
+        error.httpStatus = response.status;
+        error.errorClass = `http_${response.status}`;
+        throw error;
       }
-      return textFromResponses((await response.json()) as Json);
+      const parsed = textFromResponses((await response.json()) as Json);
+      return { ...parsed, model, httpStatus: response.status, latencyMs };
     },
   };
 }
 
 export function getProviders(): AnswerProvider[] {
-  return [perplexity()];
+  return [
+    agentProvider("perplexity", "Perplexity", "PERPLEXITY_MODEL", DEFAULT_PROVIDER_MODELS.perplexity),
+    agentProvider("openai", "ChatGPT", "OPENAI_MODEL", DEFAULT_PROVIDER_MODELS.openai),
+    agentProvider("gemini", "Gemini", "GEMINI_MODEL", DEFAULT_PROVIDER_MODELS.gemini),
+  ];
 }
 
 export function providerSignature(providers: AnswerProvider[] = getProviders()): string {
