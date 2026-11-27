@@ -7,6 +7,18 @@ export function stripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
+/**
+ * The practice checkout marks a report paid without charging a card, so it is
+ * off unless ALLOW_DEMO_CHECKOUT is exactly "true" and no Stripe key is set.
+ * A missing STRIPE_SECRET_KEY on its own never turns it on.
+ */
+export function demoCheckoutAllowed(): boolean {
+  return process.env.ALLOW_DEMO_CHECKOUT === "true" && !stripeConfigured();
+}
+
+export const DEMO_CHECKOUT_DISABLED_MESSAGE =
+  "Checkout isn't set up on this install yet. Email hello@twoforksstudio.com and Jalen will sort it out.";
+
 export function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;

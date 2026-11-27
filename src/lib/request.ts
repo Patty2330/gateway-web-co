@@ -251,12 +251,55 @@ export function hashIp(ip: string): string {
   return createHash("sha256").update(`${salt}|${bucket}`).digest("hex").slice(0, 32);
 }
 
+export const CANONICAL_APP_URL = "https://twoforksstudio.com";
+const LOCAL_FALLBACK_APP_URL = "http://127.0.0.1:43123";
+
+/** Public hosts this app answers on. Always served over https. */
+export const TRUSTED_APP_HOSTS: ReadonlySet<string> = new Set([
+  "twoforksstudio.com",
+  "www.twoforksstudio.com",
+  "gateway-web-co.onrender.com",
+]);
+
+/** Loopback hosts, trusted only outside production. */
+const LOCAL_APP_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function parseHostHeader(raw: string | null): { hostname: string; port: string } | null {
+  if (!raw) return null;
+  // A proxy chain can send "a, b". Only the first value is the original host.
+  const value = raw.split(",")[0]?.trim().toLowerCase() ?? "";
+  if (!value || value.length > 255) return null;
+  const match = value.match(/^(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::(\d{1,5}))?$/);
+  if (!match) return null;
+  const port = match[2] ?? "";
+  if (port && (Number(port) < 1 || Number(port) > 65535)) return null;
+  return { hostname: match[1].replace(/\.$/, ""), port };
+}
+
+/**
+ * Base URL for links we hand out (Stripe return URLs, monitor emails).
+ *
+ * APP_URL always wins. Without it, the Host / X-Forwarded-Host header is only
+ * used when it names a host we own, so a forged header cannot send a customer's
+ * Stripe redirect or email link to someone else's site. Loopback hosts are
+ * allowed outside production for local dev. Anything else falls back to the
+ * canonical https://twoforksstudio.com in production.
+ */
 export function appUrlFrom(request: Request): string {
   if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") || "http";
-  if (host) return `${proto}://${host}`;
-  return "http://127.0.0.1:43123";
+  const production = process.env.NODE_ENV === "production";
+  const candidates = [request.headers.get("x-forwarded-host"), request.headers.get("host")];
+  for (const candidate of candidates) {
+    const host = parseHostHeader(candidate);
+    if (!host) continue;
+    if (TRUSTED_APP_HOSTS.has(host.hostname)) return `https://${host.hostname}`;
+    if (!production && LOCAL_APP_HOSTS.has(host.hostname)) {
+      const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+      const proto = forwardedProto === "https" ? "https" : "http";
+      return `${proto}://${host.hostname}${host.port ? `:${host.port}` : ""}`;
+    }
+  }
+  return production ? CANONICAL_APP_URL : LOCAL_FALLBACK_APP_URL;
 }
 
 export function safeEqual(left: string, right: string): boolean {
@@ -290,6 +333,20 @@ export function rateLimitDay(now: Date = new Date()): string {
 
 export function dailyLimitReachedMessage(limit = dailyLimit()): string {
   return `That's enough free checks for today. Each connection gets ${limit} a day, so the AI bills stay small. Checks that don't finish don't count toward that limit.`;
+}
+
+/** Checkout starts per connection per day, so nobody can spam Stripe sessions. */
+export function checkoutDailyLimit(): number {
+  const parsed = Number(process.env.CHECKOUT_RATE_LIMIT_PER_DAY || 20);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
+}
+
+export function checkoutRateKey(ipHash: string): string {
+  return `${ipHash}:checkout`;
+}
+
+export function checkoutDailyLimitReachedMessage(): string {
+  return "That's enough checkout tries for today. Try again tomorrow, or email hello@twoforksstudio.com.";
 }
 
 export function leadsDailyLimitReachedMessage(): string {

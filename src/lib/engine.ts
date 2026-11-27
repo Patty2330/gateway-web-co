@@ -267,6 +267,7 @@ export async function executeScan(
   const minStartGapMs = options.minStartGapMs ?? MIN_AGENT_START_GAP_MS;
   let lastLiveStart = 0;
   let paceChain = Promise.resolve();
+  let siteCheckTimer: ReturnType<typeof setTimeout> | undefined;
 
   const waitForLiveSlot = async (configured: boolean) => {
     if (!configured || minStartGapMs <= 0) return;
@@ -368,7 +369,7 @@ export async function executeScan(
             resolve(null);
             return;
           }
-          setTimeout(() => resolve(null), leftover);
+          siteCheckTimer = setTimeout(() => resolve(null), leftover);
         }),
       ]);
     }
@@ -435,6 +436,7 @@ export async function executeScan(
     };
   } finally {
     if (timer) clearTimeout(timer);
+    if (siteCheckTimer) clearTimeout(siteCheckTimer);
     options.signal?.removeEventListener("abort", onParentAbort);
   }
 }

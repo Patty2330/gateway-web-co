@@ -42,6 +42,8 @@ function scrub(value: string): string {
   return value.replace(/re_[A-Za-z0-9_]+/g, "[key]").replace(/\s+/g, " ").trim().slice(0, 300);
 }
 
+export const RESEND_TIMEOUT_MS = 15_000;
+
 /** POST one message to Resend. Throws a short error when Resend rejects it. */
 export async function postResendEmail(
   input: { apiKey: string; from: string; to: string; subject: string; text: string },
@@ -59,6 +61,8 @@ export async function postResendEmail(
       subject: input.subject,
       text: input.text,
     }),
+    // A hung send must not hold up a request (the daily monitor has a time budget).
+    signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
   });
   if (!response.ok) {
     const body = await response.text().catch(() => "");

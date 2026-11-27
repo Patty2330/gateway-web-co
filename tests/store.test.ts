@@ -172,3 +172,44 @@ describe("store", () => {
     expect(await store.refundRateLimit("missing", "2026-11-25")).toBe(0);
   });
 });
+
+describe("findRecentByIp never hands back a paid scan", () => {
+  const since = "2026-11-24T00:00:00.000Z";
+  const PAID = "aaaaaaaa-0000-4000-8000-000000000001";
+  const FREE = "aaaaaaaa-0000-4000-8000-000000000002";
+
+  it("skips a newer paid scan from the same IP and returns the older free one", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(scan(FREE, { ipHash: "shared-nat", cacheKey: "k1", createdAt: "2026-11-25T10:00:00.000Z" }));
+    await store.insertScan(scan(PAID, { ipHash: "shared-nat", cacheKey: "k1", createdAt: "2026-11-25T11:00:00.000Z" }));
+    await store.markPaid(PAID, { plan: "report", email: "owner@example.com", stripeSessionId: "cs_1", stripeSubscriptionId: null });
+    const found = await store.findRecentByIp("shared-nat", "k1", since);
+    expect(found?.id).toBe(FREE);
+  });
+
+  it.each([
+    ["report", { plan: "report" as const, email: "a@example.com", stripeSessionId: "cs_r", stripeSubscriptionId: null }],
+    ["monitor", { plan: "monitor" as const, email: "a@example.com", stripeSessionId: "cs_m", stripeSubscriptionId: "sub_m" }],
+    ["practice report", { plan: "report" as const, email: "a@example.com", stripeSessionId: null, stripeSubscriptionId: null }],
+  ])("returns null when the only match is a %s purchase", async (_label, purchase) => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(scan(PAID, { ipHash: "shared-nat", cacheKey: "k1", createdAt: "2026-11-25T11:00:00.000Z" }));
+    await store.markPaid(PAID, purchase);
+    expect(await store.findRecentByIp("shared-nat", "k1", since)).toBeNull();
+  });
+
+  it("returns null when a monitor was canceled back to a report tier", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(scan(PAID, { ipHash: "shared-nat", cacheKey: "k1", createdAt: "2026-11-25T11:00:00.000Z" }));
+    await store.markPaid(PAID, { plan: "monitor", email: "a@example.com", stripeSessionId: "cs_m", stripeSubscriptionId: "sub_x" });
+    await store.clearMonitor("sub_x");
+    expect((await store.getScan(PAID))?.tier).toBe("report");
+    expect(await store.findRecentByIp("shared-nat", "k1", since)).toBeNull();
+  });
+
+  it("still reuses a plain free scan from the same IP", async () => {
+    const store = await createStore({ sqlitePath: ":memory:", databaseUrl: null });
+    await store.insertScan(scan(FREE, { ipHash: "me", cacheKey: "k2", createdAt: "2026-11-25T10:00:00.000Z" }));
+    expect((await store.findRecentByIp("me", "k2", since))?.id).toBe(FREE);
+  });
+});
