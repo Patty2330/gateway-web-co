@@ -100,11 +100,116 @@ export function textFromResponses(data: Json): ProviderAnswer {
   return { text: texts.join("\n\n").trim(), sources: mergeTitle(sources) };
 }
 
-function userLocation(options: ProviderAskOptions): { country: "US"; region: string; city: string } | undefined {
+const US_STATE_NAMES: Record<string, string> = {
+  AL: "Alabama",
+  AK: "Alaska",
+  AZ: "Arizona",
+  AR: "Arkansas",
+  CA: "California",
+  CO: "Colorado",
+  CT: "Connecticut",
+  DE: "Delaware",
+  DC: "District of Columbia",
+  FL: "Florida",
+  GA: "Georgia",
+  HI: "Hawaii",
+  ID: "Idaho",
+  IL: "Illinois",
+  IN: "Indiana",
+  IA: "Iowa",
+  KS: "Kansas",
+  KY: "Kentucky",
+  LA: "Louisiana",
+  ME: "Maine",
+  MD: "Maryland",
+  MA: "Massachusetts",
+  MI: "Michigan",
+  MN: "Minnesota",
+  MS: "Mississippi",
+  MO: "Missouri",
+  MT: "Montana",
+  NE: "Nebraska",
+  NV: "Nevada",
+  NH: "New Hampshire",
+  NJ: "New Jersey",
+  NM: "New Mexico",
+  NY: "New York",
+  NC: "North Carolina",
+  ND: "North Dakota",
+  OH: "Ohio",
+  OK: "Oklahoma",
+  OR: "Oregon",
+  PA: "Pennsylvania",
+  RI: "Rhode Island",
+  SC: "South Carolina",
+  SD: "South Dakota",
+  TN: "Tennessee",
+  TX: "Texas",
+  UT: "Utah",
+  VT: "Vermont",
+  VA: "Virginia",
+  WA: "Washington",
+  WV: "West Virginia",
+  WI: "Wisconsin",
+  WY: "Wyoming",
+};
+
+const US_STATE_BY_NAME = new Map(
+  Object.values(US_STATE_NAMES).map((name) => [name.toLowerCase(), name] as const),
+);
+
+const SECRET_SNIPPET_PATTERN =
+  /Bearer\s+\S+|\b(?:sk_live_|sk_test_|rk_live_|rk_test_|rk_|whsec_|pplx-)[A-Za-z0-9]+|\bsk-[a-zA-Z0-9_-]+|AIza[\w-]+/gi;
+
+export function mapUsRegion(state: string): string {
+  const trimmed = state.trim();
+  if (!trimmed) return "";
+  return US_STATE_NAMES[trimmed.toUpperCase()] ?? US_STATE_BY_NAME.get(trimmed.toLowerCase()) ?? trimmed;
+}
+
+export function sanitizeErrorSnippet(text: string, maxLength = 200): string {
+  return text.replace(SECRET_SNIPPET_PATTERN, "[redacted]").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+export type AgentErrorDetails = {
+  status: number;
+  errorType?: string;
+  errorParam?: string;
+  errorMessage?: string;
+};
+
+export function parseAgentErrorBody(status: number, body: string): AgentErrorDetails {
+  const details: AgentErrorDetails = { status };
+  const trimmed = body.trim();
+  if (!trimmed) return details;
+  try {
+    const json = JSON.parse(trimmed) as Record<string, unknown>;
+    const err =
+      json.error && typeof json.error === "object" && !Array.isArray(json.error)
+        ? (json.error as Record<string, unknown>)
+        : json;
+    if (typeof err.type === "string") details.errorType = err.type;
+    if (typeof err.param === "string") details.errorParam = err.param;
+    const message =
+      typeof err.message === "string" ? err.message : typeof json.message === "string" ? json.message : trimmed;
+    details.errorMessage = sanitizeErrorSnippet(message);
+  } catch {
+    details.errorMessage = sanitizeErrorSnippet(trimmed);
+  }
+  return details;
+}
+
+function userLocation(
+  options: ProviderAskOptions,
+): { country: "US"; region?: string; city?: string } | undefined {
   const city = options.city?.trim() ?? "";
-  const region = options.state?.trim() ?? "";
-  if (!city || !region) return undefined;
-  return { country: "US", region, city };
+  const region = options.state ? mapUsRegion(options.state) : "";
+  if (!city && !region) return undefined;
+  return {
+    country: "US",
+    ...(region ? { region } : {}),
+    ...(city ? { city } : {}),
+  };
 }
 
 function agentProvider(
@@ -129,13 +234,12 @@ function agentProvider(
         model,
         input: prompt,
         max_steps: 1,
-        tools: [{ type: "web_search" }],
+        tools: [{ type: "web_search", ...(location ? { user_location: location } : {}) }],
         tool_choice: { type: "web_search" },
         instructions:
           "Search the web once for this local question, then answer. Recommend real businesses. Use a numbered list when you name more than one, best first. Include the source URLs.",
         max_output_tokens: 700,
       };
-      if (location) body.user_location = location;
       const response = await fetchWithRetry(
         PERPLEXITY_AGENT_URL,
         {
@@ -156,12 +260,19 @@ function agentProvider(
       );
       const latencyMs = Math.max(0, now() - started);
       if (!response.ok) {
-        const error = new Error(shortError(name, response.status, await readError(response))) as Error & {
+        const details = parseAgentErrorBody(response.status, await readError(response));
+        const error = new Error(shortError(name, details.status, details.errorMessage ?? "")) as Error & {
           httpStatus?: number;
           errorClass?: string;
+          errorType?: string;
+          errorParam?: string;
+          errorMessage?: string;
         };
-        error.httpStatus = response.status;
-        error.errorClass = `http_${response.status}`;
+        error.httpStatus = details.status;
+        error.errorClass = `http_${details.status}`;
+        error.errorType = details.errorType;
+        error.errorParam = details.errorParam;
+        error.errorMessage = details.errorMessage;
         throw error;
       }
       const parsed = textFromResponses((await response.json()) as Json);

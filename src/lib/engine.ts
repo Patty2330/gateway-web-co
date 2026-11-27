@@ -1,7 +1,7 @@
 import { buildDemoAnswer, demoSeed } from "@/lib/demo";
 import { buildFindings } from "@/lib/findings";
 import { parseAnswer } from "@/lib/parse";
-import { anyProviderConfigured, getProviders, type AnswerProvider, type ProviderAskOptions } from "@/lib/providers";
+import { anyProviderConfigured, getProviders, sanitizeErrorSnippet, type AnswerProvider, type ProviderAskOptions } from "@/lib/providers";
 import { defaultSleep } from "@/lib/retry";
 import { scanIsComplete } from "@/lib/scan-complete";
 import { buildQuestions } from "@/lib/questions";
@@ -88,8 +88,7 @@ function logVisibility(event: string, fields: Record<string, unknown>): void {
     if (/(?:^|_)(?:api)?key(?:_|$)|authorization|prompt|ip(?:hash|addr)?|salt|token/.test(lower)) {
       continue;
     }
-    if (typeof value === "string" && /bearer\s+\S+/i.test(value)) continue;
-    safe[key] = value;
+    safe[key] = typeof value === "string" ? sanitizeErrorSnippet(value) : value;
   }
   console.info(JSON.stringify(safe));
 }
@@ -112,14 +111,25 @@ async function askOne(
 
   const finish = (
     record: Omit<AnswerRecord, "questionId" | "question" | "providerId" | "providerName">,
-    extra: { errorClass?: string; httpStatus?: number; latencyMs?: number } = {},
+    extra: {
+      errorClass?: string;
+      httpStatus?: number;
+      latencyMs?: number;
+      errorType?: string;
+      errorParam?: string;
+      errorMessage?: string;
+    } = {},
   ): AnswerRecord => {
     const latencyMs = extra.latencyMs ?? Math.max(0, (ask?.now ?? Date.now)() - started);
     logVisibility("visibility.question", {
       provider: provider.id,
       model,
       httpStatus: extra.httpStatus,
+      status: extra.httpStatus,
       errorClass: extra.errorClass ?? (record.error ? errorClassOf(undefined, record.error) : undefined),
+      errorType: extra.errorType,
+      errorParam: extra.errorParam,
+      errorMessage: extra.errorMessage ? sanitizeErrorSnippet(extra.errorMessage) : undefined,
       latencyMs,
       mentioned: record.mentioned,
       rank: record.rank,
@@ -203,6 +213,18 @@ async function askOne(
         httpStatus:
           error && typeof error === "object" && "httpStatus" in error
             ? Number((error as { httpStatus?: number }).httpStatus)
+            : undefined,
+        errorType:
+          error && typeof error === "object" && typeof (error as { errorType?: unknown }).errorType === "string"
+            ? (error as { errorType: string }).errorType
+            : undefined,
+        errorParam:
+          error && typeof error === "object" && typeof (error as { errorParam?: unknown }).errorParam === "string"
+            ? (error as { errorParam: string }).errorParam
+            : undefined,
+        errorMessage:
+          error && typeof error === "object" && typeof (error as { errorMessage?: unknown }).errorMessage === "string"
+            ? (error as { errorMessage: string }).errorMessage
             : undefined,
       },
     );
