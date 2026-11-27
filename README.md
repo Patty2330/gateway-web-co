@@ -1,6 +1,6 @@
-# Gateway Web Co
+# Two Forks Studio
 
-One site for Jalen's Clarksville web business. The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
+One site for Two Forks Studio, Jalen's Clarksville web business. The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
 
 The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
 
