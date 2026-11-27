@@ -3,11 +3,14 @@ import type { ReactNode } from "react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { gateway } from "@/lib/gateway";
+import { gateway, siteUrl } from "@/lib/gateway";
 
 import "../globals.css";
 
+const url = siteUrl();
+
 export const metadata: Metadata = {
+  metadataBase: new URL(url),
   title: `Free AI visibility check · ${gateway.name}`,
   description:
     "See whether Perplexity recommends your Clarksville business, and what to fix.",

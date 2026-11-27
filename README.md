@@ -1,6 +1,6 @@
 # Two Forks Studio
 
-One site for Two Forks Studio, Jalen's Clarksville web business. The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
+One site for Two Forks Studio, Jalen's Clarksville web business. The live site is [https://twoforksstudio.com](https://twoforksstudio.com). Contact: [hello@twoforksstudio.com](mailto:hello@twoforksstudio.com). The homepage sells the websites. The free AI visibility check is the lead magnet, and the $49 report and $19-a-month watch are the paid add-ons.
 
 The marketing words live in `_data/site.yml`. The look lives in `styles.css`. The check asks Perplexity eight questions a customer would ask ("best plumber in Clarksville") and scores whether the business gets named.
 
@@ -36,7 +36,7 @@ The quote form and the "get it fixed" form on a report both save a lead in the d
 
 Leave `RESEND_API_KEY` or `EMAIL_FROM` blank and messages stay in the database. Nothing is sent. Set both and the app sends them with Resend, then marks each row sent or failed. A failed send is saved on the row and does not stop the check or the lead form.
 
-The from-address domain has to be verified in Resend. Until then, use `onboarding@resend.dev` (for example `Two Forks Studio <onboarding@resend.dev>`). The GitHub Pages demo has no API routes, so it never sends mail.
+The from-address domain has to be verified in Resend. Until `twoforksstudio.com` is verified there, use `onboarding@resend.dev` (for example `Two Forks Studio <onboarding@resend.dev>`). Do not set `EMAIL_FROM` to `hello@twoforksstudio.com` until then, or sending will fail. The GitHub Pages demo has no API routes, so it never sends mail.
 
 ## GitHub Pages demo
 
@@ -68,11 +68,11 @@ GitHub Pages cannot run this app. It needs Node, and the database should be Post
 
 1. Create a Render Postgres database and copy the internal URL into `DATABASE_URL`. Set `PGSSL=require`.
 2. Create a web service from this repo. Build: `npm install && npm run build`. Start: `npm start`. The start script listens on `0.0.0.0` and `$PORT`.
-3. Set `APP_URL` to the public https address. Add `PERPLEXITY_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `CRON_SECRET`. A `render.yaml` in this repo creates the web service and Postgres and wires `DATABASE_URL`.
+3. Set `APP_URL` to the public https address (`https://twoforksstudio.com` in production, or the Render preview URL on a preview). You can also set `SITE_URL` or `NEXT_PUBLIC_SITE_URL` for metadata, Open Graph, and JSON-LD; if those are unset, `APP_URL` is used, and if that is also unset the default is `https://twoforksstudio.com`. Add `PERPLEXITY_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `CRON_SECRET`. A `render.yaml` in this repo creates the web service and Postgres and wires `DATABASE_URL`.
 4. Health check path: `/api/health`.
 5. In Stripe, add a webhook at `https://YOUR-DOMAIN/api/stripe/webhook` for `checkout.session.completed`. Keep the test key until you mean to charge real cards.
 6. Add a Render cron job that POSTs to `/api/cron/monitor` once a month with `Authorization: Bearer <CRON_SECRET>`.
 
-The old GitHub Pages site was a Jekyll page at `https://patty2330.github.io/gateway-web-co/`. This app replaces that. After you merge and point a domain (or the Render URL) at it, turn GitHub Pages off so people are not looking at the old page.
+The old GitHub Pages site was a Jekyll page at `https://patty2330.github.io/gateway-web-co/`. This app replaces that. The live domain is `https://twoforksstudio.com`. After you merge and point that domain (or the Render URL) at it, turn GitHub Pages off so people are not looking at the old page.
 
 `_data/site.yml` is still the place to edit the marketing words. A Render deploy picks up those edits.

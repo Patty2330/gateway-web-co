@@ -1,6 +1,7 @@
 business_name: Two Forks Studio
 owner_name: Jalen
-email: gatewaywebco@gmail.com
+email: hello@twoforksstudio.com
+url: https://twoforksstudio.com
 phone: "612-719-4312"
 linkedin: ""
 service_area: Clarksville, TN and nearby
@@ -138,5 +139,4 @@ contact_section:
   heading: Let's get your business online
   intro: "Tell me a little about your business and I'll follow up. The first 10 local clients are $500, paid only when you're happy, and every other cost is listed above."
   form_button: Request my quote
-  form_thanks: "Thanks. This form doesn't send yet, so please email or call Jalen at [email] or [phone]."
   form_error: Please fill in your name, business name and a way to reach you.
