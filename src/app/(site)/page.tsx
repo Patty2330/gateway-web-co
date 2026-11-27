@@ -19,13 +19,22 @@ export const metadata: Metadata = {
     siteName: site.business_name,
     type: "website",
     url,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: site.business_name }],
   },
   twitter: {
     card: "summary_large_image",
     title: site.seo.social_title,
     description: site.seo.social_description,
+    images: ["/og-image.png"],
   },
-  icons: { icon: "/assets/favicon.svg" },
+  icons: {
+    icon: [
+      { url: "/assets/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+  },
 };
 
 export default function HomePage() {

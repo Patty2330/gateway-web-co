@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="rbLightTitle">
+  <title id="rbLightTitle">Two Forks Studio</title>
+  <defs><clipPath id="rb-light"><circle cx="100" cy="100" r="82"/></clipPath></defs>
+  <g clip-path="url(#rb-light)"><rect width="200" height="200" fill="#B4442A"/>
+  <path d="M10 150 C60 130 78 104 100 102 S140 74 192 58 L200 200 L0 200Z" fill="#2F5D50"/>
+  <path d="M10 150 C60 130 78 104 100 102 S140 74 192 58" fill="none" stroke="#F6F0E4" stroke-width="15"/></g>
+  <circle cx="126" cy="58" r="15" fill="#E2A23B"/>
+</svg>

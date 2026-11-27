@@ -9,46 +9,49 @@ hours: ""
 footer_place: Clarksville, Tennessee
 
 photos:
-  logo: ""
-  hero: ""
+  logo: /images/logo-riverbend-light.svg
+  hero: /images/hero-owner.jpg
 
 seo:
   title: "Two Forks Studio | $500 Websites for Clarksville, TN Businesses"
   description: "Two Forks Studio builds fast, mobile-friendly websites for Clarksville, Tennessee small businesses. First 10 clients: $500, paid only after you're 100% happy. Hosting is $15/month or $150/year, or a free handover with a domain of about $11/year."
-  social_title: "Two Forks Studio | Websites for Clarksville Businesses"
-  social_description: "A real, custom website for your Clarksville business. First 10 clients: $500, paid only when you're 100% happy. Every cost is listed up front."
+  social_title: "Two Forks Studio | Your work is good. Your website should show it."
+  social_description: "Clean, fast websites for Clarksville shops, crews and community groups. $500 for our first 10 clients, paid when you're happy. Normally $1,000."
 
 price: "$500"
 price_label: First 10 clients
 
 hero:
-  eyebrow: Clarksville, Tennessee web design
-  headline: A real website for your Clarksville business.
+  eyebrow: Made in Clarksville, Tenn.
+  headline: Your work is good. Your website should show it.
   highlight: "First 10 clients: $500."
-  intro: "Custom design, built for phones, with your hours, map and a contact form. You pay the $500 build only once you're 100% happy with it, and two rounds of changes are included. Hosting and domain options are listed below, with every cost up front."
-  button_main: Get my website
-  button_secondary: See the pricing
+  intro: "We build clean, fast websites for Clarksville shops, crews and community groups. Your first site is $500, and you don't pay a cent until you're happy with it."
+  button_main: Get my free quote →
+  button_secondary: Free AI Visibility Check
   trust_points:
-    - $500 for the first 10 local clients
-    - Pay only when you're 100% happy
-    - Every cost listed up front
+    - Pay when you're happy
+    - Every cost up front
+    - Built for phones
   example_web_address: yourbusiness.com
   phone_button_label: Call now
 
 pricing:
-  eyebrow: Pricing
-  heading: Every cost, up front
-  intro: "No surprise invoices. Here's everything it costs, including what happens after the site is built."
+  eyebrow: The offer
+  heading: "$500 for your site. You pay when you love it."
+  intro: "Our normal price is $1,000. For our first 10 Clarksville clients, it's half that, and nothing is due until the site is done and you're happy."
   items:
     - title: The build
       price: "$500"
-      text: "For the first 10 local clients. You pay only after you're 100% happy with the site. Two rounds of changes are included."
-    - title: We host
-      price: "$15/mo or $150/yr"
-      text: "I handle the domain, hosting and small edits. That's the ongoing cost if you want me to keep the site running for you."
-    - title: Or a free handover
-      price: "No handoff fee"
-      text: "I hand the site over at no extra charge. You own the domain (about $11/year). Later edits are $40 each."
+      text: "One flat price for a custom site, up to 5 pages. Two rounds of changes included."
+    - title: We run it for you
+      price: "$15/mo"
+      text: "Or $150 a year. Covers your web address, hosting and small edits. You never have to touch it."
+    - title: Or take the keys
+      price: Free
+      text: "We hand the site over at no charge. You own the web address (about $11 a year). Later edits are $40 each."
+    - title: Anything else?
+      price: "$0"
+      text: "No setup fees and no surprise bills. That's the whole list."
 
 included:
   eyebrow: What's included
@@ -77,12 +80,15 @@ how:
   eyebrow: How it works
   heading: 'Three steps from “we need a website” to live'
   steps:
-    - title: Quick call
-      text: A 15-minute conversation about your business, your customers and what you want the site to do. I'll walk through the $500 first-10 offer and both hosting options. No surprises.
-    - title: Design & build
-      text: I design and build your site, then send you a preview link. Two rounds of changes are included, and you pay the $500 only once you're 100% happy.
-    - title: Launch
-      text: Your domain, hosting, map and contact form are connected and tested. You're live. You pick the we-host plan or a free handover, and you know every cost before we start.
+    - title: A quick call
+      meta: 15 min
+      text: Tell us about your business and your customers. We'll walk you through every cost.
+    - title: We build, you look
+      meta: 1–2 weeks
+      text: You get a preview link and two rounds of changes. Nothing is due yet.
+    - title: You're happy, you pay
+      meta: Launch
+      text: We connect your web address, map and form, test it all, and you're live.
 
 why:
   eyebrow: Why it matters
@@ -101,19 +107,19 @@ why:
       text: instead of relying only on social media.
 
 concepts:
-  eyebrow: Concept work
-  heading: Sample concepts
-  note: "These are **design concepts for example businesses**, made to show the style and range of a $500 build. They are not real clients."
+  eyebrow: Our work
+  heading: Built for the places Clarksville already loves.
+  note: "These are sample sites we designed for made-up local businesses, so you can see our style. They are not real clients."
   items:
-    - title: Lawn care company
-      caption: Big estimate button, service tiles and service-area map for a fictional landscaping crew.
-      photo: ""
-    - title: Neighborhood diner
-      caption: Menu-first layout with hours up top and one-tap directions for a fictional downtown restaurant.
-      photo: ""
-    - title: Auto repair shop
-      caption: Booking-focused design with services, hours and tap-to-call for a fictional mechanic.
-      photo: ""
+    - title: Ember & Oak Coffee
+      caption: Menu up front, hours at the top, and one tap to order ahead.
+      photo: /images/work-coffee.jpg
+    - title: Franklin St. Barber Co.
+      caption: Online booking, prices on one screen, and every barber's open times.
+      photo: /images/work-barber.jpg
+    - title: Cumberland Porch & Build
+      caption: A big estimate button, before-and-after photos, and a service-area map.
+      photo: /images/work-contractor.jpg
 
 faq:
   eyebrow: FAQ
@@ -135,8 +141,8 @@ faq:
       answer: "On the we-host plan ($15/month or $150/year), small edits are included. If you take the free handover, later edits are $40 each."
 
 contact_section:
-  eyebrow: Contact
-  heading: Let's get your business online
-  intro: "Tell me a little about your business and I'll follow up. The first 10 local clients are $500, paid only when you're happy, and every other cost is listed above."
-  form_button: Request my quote
+  eyebrow: Let's get started
+  heading: Let's build yours.
+  intro: "Tell us a little about your business. We'll set up a quick call, give you a plain quote, and list every cost before we start."
+  form_button: Send it over →
   form_error: Please fill in your name, business name and a way to reach you.

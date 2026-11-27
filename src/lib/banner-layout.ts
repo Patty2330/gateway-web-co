@@ -8,8 +8,8 @@ import type { CSSProperties } from "react";
 export const topBannerStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
-  background: "#7a1f1f",
-  color: "#fff",
+  background: "#9C3A22",
+  color: "#FCF9F3",
   textAlign: "center",
   fontWeight: 700,
   fontSize: "0.95rem",

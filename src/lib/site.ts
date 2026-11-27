@@ -47,7 +47,7 @@ export type SiteContent = {
   how: {
     eyebrow: string;
     heading: string;
-    steps: { title: string; text: string }[];
+    steps: { title: string; text: string; meta?: string }[];
   };
   why: {
     eyebrow: string;
