@@ -1,0 +1,100 @@
+name: Monthly AI Visibility Monitor
+
+"on":
+  schedule:
+    # 1st of each month at 14:00 UTC (8:00 AM CST / 9:00 AM CDT).
+    - cron: "0 14 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: monthly-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Run monthly monitor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: ${{ vars.APP_URL || 'https://twoforksstudio.com' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Check CRON_SECRET is set
+        run: |
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "CRON_SECRET is not set. Add it as a repository secret and re-run."
+            exit 1
+          fi
+
+      - name: POST /api/cron/monitor
+        run: |
+          set -euo pipefail
+          # Do not enable xtrace. It would print the bearer token.
+
+          APP_URL="${APP_URL%/}"
+          if [ -z "${APP_URL}" ]; then
+            echo "APP_URL is empty."
+            exit 1
+          fi
+
+          endpoint="${APP_URL}/api/cron/monitor"
+          body="$(mktemp)"
+          trap 'rm -f "${body}"' EXIT
+
+          set +e
+          status="$(curl -sS -o "${body}" -w "%{http_code}" \
+            -X POST \
+            --max-time 180 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Accept: application/json" \
+            "${endpoint}")"
+          curl_exit=$?
+          set -e
+
+          echo "POST ${endpoint}"
+          echo "HTTP status: ${status}"
+
+          BODY_FILE="${body}" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          raw = Path(os.environ["BODY_FILE"]).read_text(encoding="utf-8", errors="replace")
+          try:
+              data = json.loads(raw)
+          except json.JSONDecodeError:
+              preview = raw.strip().replace("\n", " ")
+              if len(preview) > 200:
+                  preview = preview[:200] + "…"
+              print("Response is not JSON.")
+              if preview:
+                  print(f"Body preview: {preview}")
+          else:
+              summary = {}
+              if isinstance(data, dict):
+                  if "ran" in data:
+                      summary["ran"] = data["ran"]
+                  if "error" in data:
+                      summary["error"] = data["error"]
+                  results = data.get("results")
+                  if isinstance(results, list):
+                      summary["resultCount"] = len(results)
+              print("Response summary:", json.dumps(summary or data, default=str)[:500])
+          PY
+
+          if [ "${curl_exit}" -ne 0 ]; then
+            echo "curl failed with exit code ${curl_exit}."
+            exit 1
+          fi
+
+          case "${status}" in
+            2[0-9][0-9])
+              echo "Monitor request succeeded."
+              ;;
+            *)
+              echo "Monitor request failed with HTTP ${status}."
+              exit 1
+              ;;
+          esac
