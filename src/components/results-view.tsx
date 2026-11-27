@@ -305,7 +305,7 @@ export function ResultsView({
               </div>
               <UnlockPanel scanId={scan.id} tier={scan.tier} />
               <p className="text-xs leading-5 text-muted-foreground">
-                $49 is a one-time report. $19 a month re-runs this check and emails what changed.
+                $10 is a one-time report. $19 a month re-runs this check and emails what changed.
                 Without a Stripe key, checkout is a clearly labeled practice payment.
               </p>
             </CardContent>

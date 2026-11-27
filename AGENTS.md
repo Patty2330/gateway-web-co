@@ -4,7 +4,7 @@ Rules for anyone (including agents) changing this repo. The GitHub repo, Render 
 
 ## Stack
 
-This is one Next.js app. The homepage is the Two Forks Studio marketing site. The free AI visibility check, the $49 report, and the $19/month watch live in the same app.
+This is one Next.js app. The homepage is the Two Forks Studio marketing site. The free AI visibility check, the $10 report, and the $19/month watch live in the same app.
 
 - Next.js (App Router), TypeScript, Tailwind, and shadcn/ui for the check.
 - The marketing page keeps the original CSS in `styles.css` and the words in `_data/site.yml`.
@@ -30,7 +30,7 @@ Tests cover how answers are read, how the score is calculated, and that the webs
 ## Conventions
 
 - Keep the marketing page looking like the current site. Change words in `_data/site.yml` when the offer changes. Do not restyle `styles.css` for a new campaign unless Jalen asks.
-- The check sells Two Forks Studio's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The $49 report and $19/month watch stay as they are.
+- The check sells Two Forks Studio's website build. Use the price and promise in `_data/site.yml` (right now: first 10 local clients, $500, paid only when the owner is happy). The full report is $10 (1000 cents). The $19/month watch stays as it is.
 - The visibility check queries Perplexity, ChatGPT, and Gemini through Perplexity's Agent API (`POST https://api.perplexity.ai/v1/agent`) with a single `PERPLEXITY_API_KEY`. Keys come from the environment, never from the database or the git history.
 - Email stays in the outbox unless both `RESEND_API_KEY` and `EMAIL_FROM` are set. Then send through Resend and record sent or failed. A send failure must not crash the request. The Pages demo has no API routes and must not send mail.
 - Do not add a second component library.
@@ -74,6 +74,7 @@ If `PERPLEXITY_API_KEY` is missing, the check must still run from the form throu
 - The public visual system is the Riverbend redesign (Concept B mark: `public/images/logo-riverbend-light.svg` on light surfaces, `logo-riverbend-dark.svg` on dark). Favicons and app icons must be generated from those Concept B SVGs, never from `logos/export/` (Concept A). Sample work cards must stay labeled as sample sites, not real clients. Keep the quote form on `/api/leads` and the AI check on `/api/scans` (or `/check` with prefilled inputs). (Web Chief / Creative, Nov 27 2026).
 - AI Visibility Check must match possessives (`Appleton's` / `Appleton’s`), distinctive aliases (`Appleton HD`, `Appleton H-D`), and the submitted `websiteUrl` registrable domain in answer text or citation hosts (ignore `www.` / subdomains; never credit yelp.com / facebook.com / google.com unless that is the submitted site). Run `textIncludesName` on each raw list-item line, not only the split head. Log one short JSON line per question and per scan (provider, model, HTTP/error class, latencyMs, mentioned, rank) with no raw IPs, API keys, or prompt dumps. Bump `VISIBILITY_CACHE_VERSION` in `buildCacheKey` when matcher or provider behavior changes so old cached 0s are never reused. (Web Chief, Appleton Harley-Davidson 0-score fix, Nov 27 2026).
 - `twoforksstudio.com` and `hello@twoforksstudio.com` are live. Keep metadata, JSON-LD, mailto links, and docs on that domain and inbox. Preserve `APP_URL` / `SITE_URL` / `NEXT_PUBLIC_SITE_URL` overrides so local dev and Render preview URLs still work. `EMAIL_FROM` is independent of the public contact address and must stay env-var only, with no code default, until the domain is verified in Resend. (Web Chief, Nov 27 2026).
+- The AI Visibility Check Full Report price is **$10** (`1000` cents). The monthly watch stays $19 (`1900` cents). Do not change the $500 first-10 website offer or the $1,000 normal website price. Checkout uses inline `price_data.unit_amount`; there is no `STRIPE_*_PRICE_ID` env var. (Web Chief, Nov 27 2026).
 - Render internal Postgres URLs (dpg-xxxx-a) use self-signed TLS. With PGSSL=require, do not verify the certificate for them (rejectUnauthorized false, or PGSSL_NO_VERIFY=1), or every connection fails, /api/health returns 503, and the deploy never goes live. Give the pg pool a connect timeout, never cache a failed store connection, and log the error code without the URL. (Web Chief, DATABASE_URL deploy, Nov 25 2026).
 
 <!-- BEGIN:nextjs-agent-rules -->

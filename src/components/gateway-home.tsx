@@ -258,7 +258,7 @@ export function GatewayHome({ site }: { site: SiteContent }) {
             </div>
             <HomeCheckForm />
             <p className="fine">
-              Sample result. The check is free. A full write-up is $49 if you want one. Or open the{" "}
+              Sample result. The check is free. A full write-up is $10 if you want one. Or open the{" "}
               <a href={sitePath("/check")} style={{ textDecoration: "underline" }}>
                 full check form
               </a>
