@@ -349,10 +349,6 @@ content:
           - name: form_button
             label: Form button
             type: string
-          - name: form_thanks
-            label: Thank-you message
-            type: text
-            description: Shown after someone sends the form. You can use [email] and [phone] and they will be filled in automatically.
           - name: form_error
             label: Message if the form is incomplete
             type: string

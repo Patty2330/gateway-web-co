@@ -7,6 +7,7 @@ export type SiteContent = {
   business_name: string;
   owner_name: string;
   email: string;
+  url: string;
   phone: string;
   linkedin: string;
   service_area: string;
@@ -70,7 +71,6 @@ export type SiteContent = {
     heading: string;
     intro: string;
     form_button: string;
-    form_thanks: string;
     form_error: string;
   };
 };

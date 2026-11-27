@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { gateway, leadEmailSubject } from "@/lib/gateway";
+import { CANONICAL_SITE_URL, gateway, leadEmailSubject, siteUrl } from "@/lib/gateway";
 import { monitorEmail } from "@/lib/monitor-email";
 import { renderReportPdf } from "@/lib/pdf";
 import type { PublicScan } from "@/lib/present";
@@ -129,6 +129,47 @@ describe("public brand", () => {
     expectPublicBrand(gateway.buildPitch);
   });
 
+  it("uses the live contact email and site URL", () => {
+    const site = getSite();
+    expect(site.email).toBe("hello@twoforksstudio.com");
+    expect(site.url).toBe("https://twoforksstudio.com");
+    expect(gateway.email).toBe("hello@twoforksstudio.com");
+    expect(gateway.url).toBe(CANONICAL_SITE_URL);
+    expect(CANONICAL_SITE_URL).toBe("https://twoforksstudio.com");
+    expect(site.contact_section).not.toHaveProperty("form_thanks");
+  });
+
+  it("drops the unused form_thanks copy that said the form does not send", () => {
+    const siteYaml = readFileSync(path.join(process.cwd(), "_data", "site.yml"), "utf8");
+    const pagesCms = readFileSync(path.join(process.cwd(), ".pages.yml"), "utf8");
+    const siteTypes = readFileSync(path.join(process.cwd(), "src", "lib", "site.ts"), "utf8");
+    for (const contents of [siteYaml, pagesCms, siteTypes]) {
+      expect(contents).not.toMatch(/form_thanks/);
+      expect(contents).not.toMatch(/doesn't send yet/i);
+    }
+  });
+
+  it("defaults metadata and JSON-LD to the live site URL and honors env overrides", () => {
+    expect(siteUrl({})).toBe("https://twoforksstudio.com");
+    expect(siteUrl({ APP_URL: "http://127.0.0.1:43123" })).toBe("http://127.0.0.1:43123");
+    expect(siteUrl({ APP_URL: "https://gateway-web-co.onrender.com/" })).toBe(
+      "https://gateway-web-co.onrender.com",
+    );
+    expect(
+      siteUrl({
+        APP_URL: "http://127.0.0.1:43123",
+        SITE_URL: "https://twoforksstudio.com",
+      }),
+    ).toBe("https://twoforksstudio.com");
+    expect(
+      siteUrl({
+        APP_URL: "http://127.0.0.1:43123",
+        SITE_URL: "https://ignored.example",
+        NEXT_PUBLIC_SITE_URL: "https://preview.example/",
+      }),
+    ).toBe("https://preview.example");
+  });
+
   it("puts Two Forks Studio in the generated PDF and leaves Gateway Web Co out", async () => {
     const text = pdfText(await renderReportPdf(sampleScan()));
     expectPublicBrand(text);
@@ -197,9 +238,15 @@ describe("public brand", () => {
   });
 
   it("keeps leftover Gateway Web Co, gatewaywebco, and Red River Sites out of user-facing files", () => {
-    const forbidden = [/Gateway\s+Web\s+Co/i, /gatewaywebco/i, /Red\s+River\s+Sites/i];
+    const forbidden = [
+      /Gateway\s+Web\s+Co/i,
+      /gatewaywebco/i,
+      /Red\s+River\s+Sites/i,
+      /gatewaywebco@gmail\.com/i,
+      /doesn't send yet/i,
+      /form_thanks/,
+    ];
     const allowed = [
-      /gatewaywebco@gmail\.com/gi,
       /https?:\/\/(?:www\.)?github\.com\/Patty2330\/gateway-web-co/gi,
       /https?:\/\/patty2330\.github\.io\/gateway-web-co/gi,
       /https?:\/\/gateway-web-co\.onrender\.com/gi,
@@ -223,10 +270,12 @@ describe("public brand", () => {
     }
 
     const hits: string[] = [];
+    const corpus: string[] = [];
     for (const root of roots) {
       for (const file of walk(root)) {
         if (skip.test(file)) continue;
         let contents = readFileSync(path.join(process.cwd(), file), "utf8");
+        corpus.push(contents);
         for (const allow of allowed) {
           contents = contents.replace(allow, "");
         }
@@ -237,5 +286,36 @@ describe("public brand", () => {
       }
     }
     expect(hits).toEqual([]);
+    const all = corpus.join("\n");
+    expect(all).toContain("hello@twoforksstudio.com");
+    expect(all).toContain("https://twoforksstudio.com");
+    expect(all).not.toContain("gatewaywebco@gmail.com");
+  });
+
+  it("points homepage metadata and JSON-LD at the live site by default", async () => {
+    const keys = ["APP_URL", "SITE_URL", "NEXT_PUBLIC_SITE_URL"] as const;
+    const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    try {
+      for (const key of keys) delete process.env[key];
+      vi.resetModules();
+      const { metadata } = await import("@/app/(site)/page");
+      expect(String(metadata.metadataBase)).toBe("https://twoforksstudio.com/");
+      expect(metadata.alternates?.canonical).toBe("/");
+      expect(metadata.openGraph?.url).toBe("https://twoforksstudio.com");
+    } finally {
+      for (const key of keys) {
+        if (previous[key] == null) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
+  });
+
+  it("keeps EMAIL_FROM env-driven and Resend-safe, with no hello@ default", () => {
+    const envExample = readFileSync(path.join(process.cwd(), ".env.example"), "utf8");
+    expect(envExample).toMatch(/EMAIL_FROM=Two Forks Studio <onboarding@resend\.dev>/);
+    expect(envExample).not.toMatch(/EMAIL_FROM=.*hello@twoforksstudio\.com/);
+    const emailLib = readFileSync(path.join(process.cwd(), "src", "lib", "email.ts"), "utf8");
+    expect(emailLib).toContain('source.EMAIL_FROM?.trim() || ""');
+    expect(emailLib).not.toContain("hello@twoforksstudio.com");
   });
 });
